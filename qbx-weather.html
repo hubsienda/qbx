@@ -1,144 +1,242 @@
-<!-- Minimal, rock-solid current weather fetcher for WeatherAPI.com -->
-<script type="module">
-const WEATHERAPI_KEY = "553b39e4a880493f8fe80855252108"; // your key
-const DEFAULT_CACHE_TTL_MS = 60_000;   // 60s (tweak if you like)
-const DEFAULT_TIMEOUT_MS   = 7_000;    // 7s hard timeout
-const MAX_RETRIES          = 2;        // total tries = 1 + MAX_RETRIES
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>QBX Weather Guess — Type Any City</title>
+<style>
+  body{font-family:system-ui,Arial,sans-serif;margin:0;background:#f7f7f8;color:#111}
+  .wrap{max-width:900px;margin:0 auto;padding:18px}
+  h1{font-size:clamp(24px,5vw,36px);margin:0 0 8px}
+  .lead{color:#666;margin:0 0 14px}
+  .panel{background:#fff;border:1px solid #e9e9ee;border-radius:14px;padding:14px;margin:12px 0}
+  .row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+  input,button{border-radius:10px;padding:10px 12px;font-weight:600}
+  input{border:1px solid #d7d7de;flex:1;min-width:200px}
+  button{border:0;background:#111;color:#fff;cursor:pointer}
+  button:hover{background:#222}
+  .ghost{background:#eee;color:#111;border:0} .ghost:hover{background:#ddd}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px}
+  .city{font-size:clamp(20px,4vw,26px);font-weight:800;margin:10px 0}
+  .status{font-size:14px;margin-top:6px;color:#666}
+  .ok{color:#127a2a;font-weight:700} .bad{color:#b3261e;font-weight:700}
+  .result{margin-top:10px;font-size:16px}
+  .score{margin-top:10px;display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+  .score strong{font-size:17px}
+  details{margin-top:6px}
+  pre{background:#111;color:#fff;padding:10px;border-radius:8px;white-space:pre-wrap;overflow:auto}
+  .small{font-size:13px;color:#666}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🌍 QBX Weather Guess</h1>
+  <p class="lead">Type <b>any</b> city (or postcode, or <code>lat,lon</code>), fetch the live weather, then guess.</p>
 
-/** Small helpers **/
-const sleep = (ms)=> new Promise(r=>setTimeout(r, ms));
-function withTimeout(promise, ms){
-  const ctrl = new AbortController();
-  const timer = setTimeout(()=>ctrl.abort(), ms);
-  return {
-    signal: ctrl.signal,
-    exec: (fn)=>Promise.race([
-      fn(ctrl.signal).finally(()=>clearTimeout(timer)),
-      new Promise((_,rej)=>ctrl.signal.addEventListener('abort', ()=>rej(new Error('Timeout'))))
-    ])
+  <!-- Input -->
+  <section class="panel">
+    <div class="row">
+      <input id="q" type="text" placeholder='e.g., "New York", "SW1A", or "41.9028,12.4964"'/>
+      <button id="go">Fetch weather</button>
+      <button id="random" class="ghost">🎲 Surprise me</button>
+    </div>
+    <div id="status" class="status">Idle. Enter a place and press “Fetch weather”.</div>
+  </section>
+
+  <!-- Game -->
+  <section class="panel" id="game" style="display:none">
+    <div class="city" id="cityName">—</div>
+    <div class="small" id="meta">—</div>
+
+    <div class="grid" style="margin-top:10px">
+      <button class="ghost" id="gSunny">☀️ Sunny</button>
+      <button class="ghost" id="gCloudy">☁️ Cloudy</button>
+      <button class="ghost" id="gRainy">🌧️ Rainy</button>
+      <button class="ghost" id="gSnowy">❄️ Snowy</button>
+      <button class="ghost" id="gStormy">⛈️ Stormy</button>
+      <button class="ghost" id="gFoggy">🌫️ Foggy</button>
+    </div>
+
+    <div id="result" class="result"></div>
+
+    <div class="score">
+      <div><strong>Score:</strong> <span id="score">0</span></div>
+      <div><strong>Streak:</strong> <span id="streak">0</span></div>
+      <div><strong>Best:</strong> <span id="best">0</span></div>
+      <button id="again" class="ghost">🔁 Fetch again</button>
+    </div>
+
+    <details>
+      <summary class="small">Debug (raw WeatherAPI response)</summary>
+      <pre id="debug">—</pre>
+    </details>
+  </section>
+
+  <p class="small">Powered by <a href="https://www.weatherapi.com/" title="Weather API">WeatherAPI.com</a></p>
+</div>
+
+<script>
+// ===== CONFIG =====
+var API_KEY = "553b39e4a880493f8fe80855252108"; // your WeatherAPI key
+// A few fun defaults for "Surprise me"
+var SUGGEST = ["Rome","London","Madrid","Paris","Berlin","New York","Tokyo","Sydney","Mexico City","Cairo","Athens","Bangkok","Toronto","Dublin","Lisbon","Istanbul","Rio de Janeiro","Cape Town","Reykjavik","Wellington"];
+// ==================
+
+// Elements
+var qInput = document.getElementById('q');
+var goBtn  = document.getElementById('go');
+var rndBtn = document.getElementById('random');
+var statusEl = document.getElementById('status');
+
+var gameEl = document.getElementById('game');
+var cityNameEl = document.getElementById('cityName');
+var metaEl = document.getElementById('meta');
+var resultEl = document.getElementById('result');
+var debugEl = document.getElementById('debug');
+
+var scoreEl = document.getElementById('score');
+var streakEl = document.getElementById('streak');
+var bestEl = document.getElementById('best');
+var againBtn = document.getElementById('again');
+
+var btns = {
+  Sunny:  document.getElementById('gSunny'),
+  Cloudy: document.getElementById('gCloudy'),
+  Rainy:  document.getElementById('gRainy'),
+  Snowy:  document.getElementById('gSnowy'),
+  Stormy: document.getElementById('gStormy'),
+  Foggy:  document.getElementById('gFoggy')
+};
+
+// State
+var score=0, streak=0, best=0;
+var currentQ=null, currentCat=null, canGuess=false;
+
+// Helpers
+function setStatus(msg, ok){ statusEl.textContent = msg; statusEl.className = 'status' + (ok===true?' ok': ok===false?' bad':''); }
+function renderScore(){ scoreEl.textContent=score; streakEl.textContent=streak; bestEl.textContent=best; }
+function rand(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
+function trim(s){ return (s||'').replace(/^\s+|\s+$/g,''); }
+
+// Code-only mapping for WeatherAPI condition codes
+function mapToCat(code){
+  code = parseInt(code,10);
+  // Thunder / storms
+  if (code===1087 || (code>=1273 && code<=1282)) return 'Stormy';
+  // Rain & drizzle (incl. freezing)
+  if (code===1063) return 'Rainy';
+  if (code>=1150 && code<=1171) return 'Rainy';
+  if (code>=1180 && code<=1201) return 'Rainy';
+  if (code>=1240 && code<=1246) return 'Rainy';
+  // Snow / sleet / ice pellets / blizzard
+  if (code===1066 || code===1069) return 'Snowy';
+  if (code===1114 || code===1117) return 'Snowy';
+  if (code>=1204 && code<=1207) return 'Snowy';
+  if (code>=1210 && code<=1237) return 'Snowy';
+  if (code>=1249 && code<=1264) return 'Snowy';
+  // Fog / mist
+  if (code===1030 || code===1135 || code===1147) return 'Foggy';
+  // Clouds
+  if (code===1003 || code===1006 || code===1009) return 'Cloudy';
+  // Clear
+  if (code===1000) return 'Sunny';
+  // Default lean cloudy
+  return 'Cloudy';
+}
+
+// XHR (ES5-safe)
+function xhrGet(url, cb){
+  var x = new XMLHttpRequest();
+  x.open('GET', url, true);
+  x.onreadystatechange = function(){
+    if (x.readyState === 4) cb(null, x.status, x.responseText);
   };
-}
-function now(){ return Date.now(); }
-
-/** Local cache (per location string) **/
-function cacheGet(q){
-  try{
-    const raw = localStorage.getItem('wx:'+q);
-    if(!raw) return null;
-    const obj = JSON.parse(raw);
-    if(obj.expireAt && obj.expireAt > now()) return obj.data;
-    return null;
-  }catch{ return null; }
-}
-function cacheSet(q, data, ttlMs){
-  try{
-    localStorage.setItem('wx:'+q, JSON.stringify({ expireAt: now()+ttlMs, data }));
-  }catch{/* ignore quota */}
+  x.onerror = function(e){ cb(e || new Error('Network error')); };
+  x.send();
 }
 
-/** Robust fetch to WeatherAPI current.json */
-async function fetchCurrentWeather({ q, key=WEATHERAPI_KEY, timeoutMs=DEFAULT_TIMEOUT_MS, cacheTtlMs=DEFAULT_CACHE_TTL_MS }){
-  if(!q) throw new Error('Missing q (query). Use city, "lat,lon", postcode, or "auto:ip".');
-  // Try cache first
-  const cached = cacheGet(q);
-  if(cached) return { data: cached, fromCache:true };
+function fetchWeather(q){
+  currentQ = q;
+  setStatus('Fetching weather for “‘ + q + '” …');
+  resultEl.textContent=''; metaEl.textContent='—'; debugEl.textContent='—';
+  gameEl.style.display='block';
+  cityNameEl.textContent = q;
 
-  // Retryable fetch
-  let attempt = 0, lastErr;
-  while(attempt <= MAX_RETRIES){
-    try{
-      const url = new URL('https://api.weatherapi.com/v1/current.json');
-      url.searchParams.set('key', key);
-      url.searchParams.set('q', q);
-      url.searchParams.set('aqi', 'no');
-      url.searchParams.set('_', String(now())); // cache-buster
+  var url = 'https://api.weatherapi.com/v1/current.json'
+          + '?key=' + encodeURIComponent(API_KEY)
+          + '&q='   + encodeURIComponent(q)
+          + '&aqi=no'
+          + '&_='   + Date.now(); // cache-buster
 
-      const { exec } = withTimeout(null, timeoutMs);
-      const res = await exec(()=> fetch(url.toString(), { cache:'no-store' }));
-      if(!res.ok){
-        // 429/5xx → retry; 4xx (except 429) → fail fast
-        if(res.status === 429 || (res.status >= 500 && res.status < 600)){
-          const body = await res.text().catch(()=> '');
-          throw Object.assign(new Error('Retryable HTTP '+res.status), { status: res.status, body });
-        }else{
-          const body = await res.text().catch(()=> '');
-          throw Object.assign(new Error('HTTP '+res.status), { status: res.status, body });
-        }
-      }
-      const json = await res.json();
-      // Minimal shape guard
-      if(!json || !json.current || !json.location || !json.current.condition){
-        throw new Error('Unexpected API shape');
-      }
-      // Cache and return
-      cacheSet(q, json, cacheTtlMs);
-      return { data: json, fromCache:false };
-    }catch(err){
-      lastErr = err;
-      attempt++;
-      if(attempt > MAX_RETRIES) break;
-      // Exponential backoff: 300ms, 900ms…
-      const backoff = 300 * Math.pow(3, attempt-1);
-      await sleep(backoff);
+  xhrGet(url, function(err, status, body){
+    if(err){ setStatus('Network error', false); debugEl.textContent=String(err); canGuess=false; return; }
+    debugEl.textContent = body;
+    if(String(status).charAt(0) !== '2'){
+      setStatus('HTTP ' + status + ' — see Debug', false);
+      canGuess=false; return;
     }
-  }
-  throw lastErr || new Error('Unknown fetch error');
+    var data;
+    try{ data = JSON.parse(body); }catch(e){ setStatus('Parse error — see Debug', false); canGuess=false; return; }
+
+    // Guard
+    if(!data || !data.current || !data.current.condition || !data.location){
+      setStatus('Unexpected API shape — see Debug', false); canGuess=false; return;
+    }
+
+    var cond = data.current.condition;
+    var loc  = data.location;
+    currentCat = mapToCat(cond.code);
+    metaEl.textContent = (loc.name || q) + (loc.region?(', ' + loc.region):'') + (loc.country?(', ' + loc.country):'')
+                       + ' — API: "' + cond.text + '" (code ' + cond.code + '), '
+                       + 'Temp ' + data.current.temp_c + '°C • Local ' + (loc.localtime || '—');
+    setStatus('Live weather loaded', true);
+    canGuess = true;
+  });
 }
 
-/** Convenience: pick the best "q"
- * - Try high-accuracy geolocation if user allows
- * - Else use WeatherAPI "auto:ip"
- */
-async function detectQueryFallback(){
-  // Try Geolocation API for precise coords
-  if('geolocation' in navigator){
-    try{
-      const pos = await new Promise((resolve, reject)=>{
-        navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy:true, timeout:5000, maximumAge:30_000 });
-      });
-      const lat = pos.coords.latitude.toFixed(4);
-      const lon = pos.coords.longitude.toFixed(4);
-      return `${lat},${lon}`;
-    }catch{/* ignore and fallback */}
+// Guess handler
+function onGuess(cat){
+  if(!canGuess) return;
+  canGuess=false;
+  if(cat === currentCat){
+    score++; streak++; if(streak>best) best=streak;
+    resultEl.className='result ok';
+    resultEl.textContent='✅ Correct! It is ' + currentCat + ' in ' + currentQ + '.';
+  }else{
+    streak=0;
+    resultEl.className='result bad';
+    resultEl.textContent='❌ Wrong. Actual: ' + currentCat + '.';
   }
-  // IP fallback handled by WeatherAPI
-  return 'auto:ip';
+  renderScore();
 }
 
-/** Example usage — runs once on load and prints a neat summary */
-(async function init(){
-  const q = await detectQueryFallback(); // e.g., "41.9028,12.4964" or "auto:ip"
-  const { data, fromCache } = await fetchCurrentWeather({ q });
-
-  // Extract the essentials
-  const loc = data.location;
-  const cur = data.current;
-  const summary = {
-    name: `${loc.name}, ${loc.region || loc.country}`,
-    localtime: loc.localtime,
-    temp_c: cur.temp_c,
-    wind_kph: cur.wind_kph,
-    humidity: cur.humidity,
-    condition_text: cur.condition.text,
-    condition_code: cur.condition.code,
-    fromCache
-  };
-
-  // Render a minimal UI (optional — replace with your own)
-  const mount = document.createElement('div');
-  mount.style.cssText = "max-width:680px;margin:18px auto;padding:14px;border:1px solid #e8e8e8;border-radius:12px;background:#fff;text-align:left;font:14px/1.5 system-ui,Segoe UI,Inter,Arial";
-  mount.innerHTML = `
-    <div style="font-weight:700;font-size:16px;margin-bottom:6px;">${summary.name}</div>
-    <div>Local time: ${summary.localtime}</div>
-    <div>Temp: <b>${summary.temp_c}°C</b> • Wind: ${summary.wind_kph} km/h • Humidity: ${summary.humidity}%</div>
-    <div>Condition: ${summary.condition_text} (code ${summary.condition_code})</div>
-    <div style="color:#777;margin-top:6px">${summary.fromCache ? 'Served from 60s cache' : 'Live from WeatherAPI'} • Powered by <a href="https://www.weatherapi.com/" title="Weather API">WeatherAPI.com</a></div>
-  `;
-  document.body.appendChild(mount);
-})().catch(err=>{
-  const mount = document.createElement('pre');
-  mount.style.cssText = "max-width:680px;margin:18px auto;padding:14px;border:1px solid #f2c6c6;border-radius:12px;background:#fff0f0;color:#7a1f1f;white-space:pre-wrap";
-  mount.textContent = 'Weather error: ' + (err && err.message ? err.message : String(err));
-  document.body.appendChild(mount);
+// Wire up
+goBtn.addEventListener('click', function(){
+  var q = trim(qInput.value);
+  if(!q){ setStatus('Please type a city/postcode/coords.', false); return; }
+  fetchWeather(q);
 });
+qInput.addEventListener('keydown', function(ev){
+  if(ev.key === 'Enter' || ev.keyCode === 13){ goBtn.click(); }
+});
+rndBtn.addEventListener('click', function(){
+  var pick = rand(SUGGEST);
+  qInput.value = pick;
+  fetchWeather(pick);
+});
+againBtn.addEventListener('click', function(){
+  if(currentQ) fetchWeather(currentQ);
+});
+
+btns.Sunny.addEventListener('click',  function(){ onGuess('Sunny');  });
+btns.Cloudy.addEventListener('click', function(){ onGuess('Cloudy'); });
+btns.Rainy.addEventListener('click',  function(){ onGuess('Rainy');  });
+btns.Snowy.addEventListener('click',  function(){ onGuess('Snowy');  });
+btns.Stormy.addEventListener('click', function(){ onGuess('Stormy'); });
+btns.Foggy.addEventListener('click',  function(){ onGuess('Foggy');  });
+
+// Init
+renderScore();
 </script>
+</body>
+</html>
