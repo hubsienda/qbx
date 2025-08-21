@@ -1,113 +1,78 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Weather Guess Game</title>
-  <style>
-    body { font-family: Arial, sans-serif; background:#f7f7f7; text-align:center; padding:20px; }
-    h1 { color:#333; }
-    .city-btn { margin:5px; padding:10px 15px; border:1px solid #ccc; border-radius:6px; cursor:pointer; background:#fff; }
-    #result { margin-top:20px; font-size:1.3em; font-weight:bold; }
-    #debug { margin-top:30px; font-size:0.8em; white-space:pre; text-align:left; background:#eee; padding:10px; border-radius:6px; max-width:700px; margin-left:auto; margin-right:auto; }
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Is It Sunny or Raining?</title>
+<style>
+  body { font-family: sans-serif; background:#f8f8f8; color:#222; text-align:center; }
+  h1 { margin-top:20px; }
+  .cities { display:flex; flex-wrap:wrap; justify-content:center; margin:20px; gap:10px; }
+  .city { padding:10px 18px; background:#eee; border-radius:8px; cursor:pointer; }
+  .city:hover { background:#ddd; }
+  #result { margin-top:20px; font-size:1.3em; font-weight:bold; }
+  #debug { margin-top:15px; font-size:0.8em; color:#666; white-space:pre; text-align:left; max-width:500px; margin-left:auto; margin-right:auto; }
+</style>
 </head>
 <body>
-  <h1>Weather Guess Game 🌍</h1>
-  <p>Pick a city, guess the weather, then check if you beat the AI!</p>
 
-  <div id="cities"></div>
+<h1>🌍 Guess the Weather!</h1>
+<p>Click a city and I’ll fetch the *real* weather.</p>
 
-  <div id="guessArea" style="margin-top:20px; display:none;">
-    <button class="city-btn" onclick="makeGuess('Sunny')">☀️ Sunny</button>
-    <button class="city-btn" onclick="makeGuess('Cloudy')">☁️ Cloudy</button>
-    <button class="city-btn" onclick="makeGuess('Rainy')">🌧️ Rainy</button>
-    <button class="city-btn" onclick="makeGuess('Snowy')">❄️ Snowy</button>
-    <button class="city-btn" onclick="makeGuess('Stormy')">⛈️ Stormy</button>
-    <button class="city-btn" onclick="makeGuess('Foggy')">🌫️ Foggy</button>
-  </div>
-
-  <div id="result">Idle. Click a city.</div>
-
-  <details id="debug"><summary>Debug Panel</summary><div id="debugOut"></div></details>
-
-  <p style="margin-top:40px;font-size:0.8em;">
-    Powered by <a href="https://www.weatherapi.com/" title="Weather API">WeatherAPI.com</a>
-  </p>
+<div class="cities" id="cities"></div>
+<div id="result">Idle. Click a city.</div>
+<div id="debug"></div>
 
 <script>
-var API_KEY = "553b39e4a880493f8fe80855252108";
-var currentCity = null;
-var actualCat = null;
+const API_KEY = "553b39e4a880493f8fe80855252108"; // WeatherAPI key
+const CITIES = ["Rome","London","Madrid","Paris","Berlin","Tokyo","New York","Moscow","Sydney","Cairo","Mexico City","Toronto","Buenos Aires","Cape Town","Beijing","Delhi","Bangkok","Istanbul","Athens","Lisbon"];
 
-var CITIES = [
-  "Rome, Italy","London, United Kingdom","Madrid, Spain","Paris, France",
-  "Berlin, Germany","Tokyo, Japan","New York, USA","Ottawa, Canada",
-  "Sydney, Australia","Moscow, Russia","Beijing, China","Seoul, South Korea",
-  "Cairo, Egypt","Delhi, India","Bangkok, Thailand","Mexico City, Mexico",
-  "Buenos Aires, Argentina","Nairobi, Kenya","Cape Town, South Africa","Athens, Greece"
-];
-
-// Build city buttons
-var citiesDiv = document.getElementById("cities");
-CITIES.forEach(c=>{
-  var b=document.createElement("button");
-  b.textContent=c;
-  b.className="city-btn";
-  b.onclick=()=>fetchWeather(c);
-  citiesDiv.appendChild(b);
-});
-
-// Mapping codes → categories
-function mapToCat(code) {
-  code = parseInt(code, 10);
-
-  if (code === 1087 || (code >= 1273 && code <= 1282)) return 'Stormy'; // Thunder
-  if (code === 1063) return 'Rainy';
-  if (code >= 1150 && code <= 1171) return 'Rainy'; // drizzle
-  if (code >= 1180 && code <= 1201) return 'Rainy'; // rain
-  if (code >= 1240 && code <= 1246) return 'Rainy'; // showers
-  if (code === 1066 || code === 1069) return 'Snowy';
-  if (code === 1114 || code === 1117) return 'Snowy';
-  if (code >= 1204 && code <= 1207) return 'Snowy'; // sleet
-  if (code >= 1210 && code <= 1237) return 'Snowy'; // snow
-  if (code >= 1249 && code <= 1264) return 'Snowy'; // ice/sleet
-  if (code === 1030 || code === 1135 || code === 1147) return 'Foggy'; // fog
-  if (code === 1003 || code === 1006 || code === 1009) return 'Cloudy';
-  if (code === 1000) return 'Sunny';
-  return 'Cloudy';
+function mapWeather(code){
+  code = parseInt(code,10);
+  if(code === 1000) return "Sunny ☀️";                // clear
+  if([1003,1006,1009].includes(code)) return "Cloudy ☁️"; // cloudy variants
+  if([1030,1135,1147].includes(code)) return "Foggy 🌫️";  // fog/mist
+  if(code===1087 || (code>=1273 && code<=1282)) return "Stormy ⛈️"; // thunder
+  if((code>=1066 && code<=1237) || (code>=1249 && code<=1264)) return "Snowy ❄️"; // snow/sleet
+  if((code>=1063 && code<=1201) || (code>=1240 && code<=1246)) return "Rainy 🌧️"; // rain
+  return "Cloudy ☁️"; // fallback
 }
 
-function fetchWeather(city) {
-  currentCity = city;
-  document.getElementById("result").textContent = "Fetching weather for " + city + "...";
-  document.getElementById("guessArea").style.display="block";
+async function fetchWeather(city){
+  const url = `https://api.weatherapi.com/v1/current.json?key=${API_KEY}&q=${encodeURIComponent(city)}&aqi=no&_=${Date.now()}`;
+  const res = await fetch(url);
+  if(!res.ok) throw new Error("API error " + res.status);
+  return await res.json();
+}
 
-  var url = "https://api.weatherapi.com/v1/current.json"
-    + "?key=" + encodeURIComponent(API_KEY)
-    + "&q=" + encodeURIComponent(city)
-    + "&aqi=no"
-    + "&_=" + Date.now(); // cache-buster
-
-  fetch(url).then(r=>r.json()).then(j=>{
-    var code = j.current.condition.code;
-    var text = j.current.condition.text;
-    actualCat = mapToCat(code);
-    document.getElementById("debugOut").textContent =
-      "City: "+city+"\nCondition: "+text+" (code "+code+")\nMapped category: "+actualCat+"\n\nFull JSON:\n"+JSON.stringify(j,null,2);
-    document.getElementById("result").textContent = "Now guess the weather in " + city + "!";
-  }).catch(e=>{
-    document.getElementById("result").textContent="Error: "+e;
+function makeCityButtons(){
+  const box = document.getElementById("cities");
+  CITIES.forEach(city=>{
+    const btn=document.createElement("div");
+    btn.className="city";
+    btn.textContent=city;
+    btn.onclick=async()=>{
+      document.getElementById("result").textContent=`Fetching ${city}...`;
+      try{
+        const data=await fetchWeather(city);
+        const cond=data.current.condition;
+        const mapped=mapWeather(cond.code);
+        document.getElementById("result").textContent=`${city}: ${mapped}`;
+        document.getElementById("debug").textContent=
+          `Raw: ${cond.text} (code ${cond.code})\nTemp: ${data.current.temp_c}°C`;
+      }catch(e){
+        document.getElementById("result").textContent="Error fetching weather.";
+        console.error(e);
+      }
+    };
+    box.appendChild(btn);
   });
 }
 
-function makeGuess(g) {
-  if(!actualCat){document.getElementById("result").textContent="Pick a city first!";return;}
-  if(g===actualCat){
-    document.getElementById("result").textContent="🎉 Correct! It really is "+g+" in "+currentCity+"!";
-  } else {
-    document.getElementById("result").textContent="❌ Wrong! You guessed "+g+", but it's "+actualCat+" in "+currentCity+".";
-  }
-}
+makeCityButtons();
 </script>
+<p style="margin-top:30px;font-size:0.8em;color:#666">
+Powered by <a href="https://www.weatherapi.com/" title="Weather API">WeatherAPI.com</a>
+</p>
 </body>
 </html>
