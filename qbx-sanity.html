@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>QBX Sanity</title>
+<style>body{font-family:system-ui,Arial,sans-serif;padding:18px;max-width:800px;margin:0 auto}pre{background:#111;color:#fff;padding:10px;border-radius:8px;white-space:pre-wrap}</style>
+</head><body>
+<h1>QBX Sanity</h1>
+<p id="a">Booting…</p>
+<p id="b">—</p>
+<p id="c">—</p>
+<pre id="out">—</pre>
+<script>
+(async () => {
+  const A = document.getElementById('a');
+  const B = document.getElementById('b');
+  const C = document.getElementById('c');
+  const OUT = document.getElementById('out');
+  A.textContent = 'JS running ✅';
+  try {
+    const r = await fetch('https://httpbin.org/get',{cache:'no-store'}); await r.json();
+    B.textContent = 'Fetch works ✅';
+  } catch(e) { B.textContent = 'Fetch failed ❌ ' + e; }
+  try {
+    const key = '553b39e4a880493f8fe80855252108'; // your WeatherAPI key
+    const u = 'https://api.weatherapi.com/v1/current.json?key='+encodeURIComponent(key)+'&q='+encodeURIComponent('Rome, Italy')+'&aqi=no';
+    const r2 = await fetch(u,{cache:'no-store'}); const t = await r2.text();
+    C.textContent = r2.ok ? 'WeatherAPI OK ✅' : 'WeatherAPI HTTP '+r2.status+' ❌';
+    OUT.textContent = t;
+  } catch(e) { C.textContent = 'WeatherAPI network/CORS ❌ ' + e; }
+})();
+</script>
+<p style="font-size:13px">Powered by <a href="https://www.weatherapi.com/" title="Weather API">WeatherAPI.com</a></p>
+</body></html>
