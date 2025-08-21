@@ -15,6 +15,7 @@
   button:hover{background:#222}
   .ghost{background:#eee;color:#111}.ghost:hover{background:#ddd}
   .city{font-size:clamp(22px,4vw,28px);font-weight:800;margin:10px 0}
+  .meta{font-size:13px;color:#555;margin:6px 0}
   .result{margin-top:10px;font-size:16px}
   .ok{color:#127a2a;font-weight:700}.bad{color:#b3261e;font-weight:700}
   .score{margin-top:10px;display:flex;gap:12px;flex-wrap:wrap;align-items:center}
@@ -36,17 +37,21 @@
 
   <section class="panel" id="game" style="display:none">
     <h2 class="city" id="cityName">—</h2>
+    <div id="apiMeta" class="meta">—</div>
+
     <div class="grid" id="guessBtns"></div>
     <div class="result" id="result"></div>
+
     <div class="score">
       <div><strong>Score:</strong> <span id="score">0</span></div>
       <div><strong>Streak:</strong> <span id="streak">0</span></div>
       <div><strong>Best:</strong> <span id="best">0</span></div>
       <button id="resetBtn" class="ghost">Reset score</button>
-      <button id="sameBtn">Next (same city)</button>
+      <button id="sameBtn">Force refresh (same city)</button>
       <button id="randBtn" class="ghost">Next (random)</button>
     </div>
-    <details><summary class="small">Debug</summary><pre id="debug">—</pre></details>
+
+    <details><summary class="small">Debug (raw WeatherAPI response)</summary><pre id="debug">—</pre></details>
   </section>
 
   <p class="small">Powered by <a href="https://www.weatherapi.com/" title="Weather API">WeatherAPI.com</a></p>
@@ -62,7 +67,7 @@ document.addEventListener('DOMContentLoaded', () => {
     "New Delhi, India","Bangkok, Thailand","Jakarta, Indonesia","Canberra, Australia",
     "Wellington, New Zealand","Singapore"
   ];
-  const CATS   = [
+  const CATS = [
     {k:"Sunny",  l:"☀️ Sunny"},
     {k:"Cloudy", l:"☁️ Cloudy"},
     {k:"Rainy",  l:"🌧️ Rainy"},
@@ -71,80 +76,143 @@ document.addEventListener('DOMContentLoaded', () => {
     {k:"Foggy",  l:"🌫️ Foggy"}
   ];
 
-  const health=document.getElementById('health'), statusEl=document.getElementById('status'), debugEl=document.getElementById('debug');
-  const cityBtns=document.getElementById('cityBtns'), gameEl=document.getElementById('game'), cityName=document.getElementById('cityName');
-  const guessBtns=document.getElementById('guessBtns'), resultEl=document.getElementById('result');
-  const scoreEl=document.getElementById('score'), streakEl=document.getElementById('streak'), bestEl=document.getElementById('best');
-  const resetBtn=document.getElementById('resetBtn'), sameBtn=document.getElementById('sameBtn'), randBtn=document.getElementById('randBtn');
+  const health   = document.getElementById('health');
+  const statusEl = document.getElementById('status');
+  const debugEl  = document.getElementById('debug');
+  const cityBtns = document.getElementById('cityBtns');
+
+  const gameEl   = document.getElementById('game');
+  const cityName = document.getElementById('cityName');
+  const apiMeta  = document.getElementById('apiMeta');
+  const guessBtns= document.getElementById('guessBtns');
+  const resultEl = document.getElementById('result');
+
+  const scoreEl  = document.getElementById('score');
+  const streakEl = document.getElementById('streak');
+  const bestEl   = document.getElementById('best');
+  const resetBtn = document.getElementById('resetBtn');
+  const sameBtn  = document.getElementById('sameBtn');
+  const randBtn  = document.getElementById('randBtn');
 
   let score=0, streak=0, best=0, currentCity=null, currentCat=null, canGuess=false;
 
   const setStatus=(m,ok=null)=>{statusEl.textContent=m; statusEl.style.color=ok===true?'#127a2a':ok===false?'#b3261e':'#666';};
-  const setDebug=(x)=>{try{debugEl.textContent=typeof x==='string'?x:JSON.stringify(x,null,2);}catch(e){debugEl.textContent=String(x)}};
+  const setDebug =(x)=>{try{debugEl.textContent=typeof x==='string'?x:JSON.stringify(x,null,2);}catch(e){debugEl.textContent=String(x)}};
   const renderScore=()=>{scoreEl.textContent=score;streakEl.textContent=streak;bestEl.textContent=best;};
 
-  // Robust mapper using WeatherAPI condition codes + text
+  // Strong, code-first mapping
   function mapToCat(code, text){
-    const t = (text||'').toLowerCase();
+    const t=(text||'').toLowerCase();
 
-    // --- Code-driven mapping (primary) ---
-    // Thunder / storm
-    if ((code >= 1273 && code <= 1282) || code === 1087) return 'Stormy'; // thunder with rain/snow; thunderstorms
-    // Heavy rain / showers
-    if ((code >= 1180 && code <= 1201) || (code >= 1240 && code <= 1246) || code === 1063) return 'Rainy';
-    // Snow / sleet / blizzard
-    if ((code >= 1210 && code <= 1237) || code === 1114 || code === 1117 || code === 1066 || code === 1069) return 'Snowy';
-    // Fog / mist / haze
-    if (code === 1030 || code === 1135 || code === 1147) return 'Foggy';
-    // Clouds (partly, cloudy, overcast)
-    if (code === 1003 || code === 1006 || code === 1009) return 'Cloudy';
+    // Storms / thunder
+    if (code===1087 || (code>=1273 && code<=1282)) return 'Stormy'; // thunder, thunder w/ rain/snow
+
+    // Rain / showers (incl. patchy rain)
+    if (code===1063 || (code>=1180 && code<=1201) || (code>=1240 && code<=1246)) return 'Rainy';
+
+    // Snow / sleet / ice pellets / blizzard
+    if (code===1066 || code===1069 || code===1114 || code===1117 || (code>=1210 && code<=1237) || (code>=1249 && code<=1252) || (code>=1255 && code<=1264)) return 'Snowy';
+
+    // Fog / mist / freezing fog
+    if (code===1030 || code===1135 || code===1147) return 'Foggy';
+
+    // Cloud layers
+    if (code===1003 || code===1006 || code===1009) return 'Cloudy';
+
     // Clear
-    if (code === 1000) return 'Sunny';
+    if (code===1000) return 'Sunny';
 
-    // --- Text fallback (secondary) ---
+    // Text fallbacks
     if (t.includes('thunder')) return 'Stormy';
     if (t.includes('rain') || t.includes('drizzle') || t.includes('shower')) return 'Rainy';
-    if (t.includes('snow') || t.includes('sleet') || t.includes('blizzard')) return 'Snowy';
+    if (t.includes('snow') || t.includes('sleet') || t.includes('blizzard') || t.includes('ice pellets')) return 'Snowy';
     if (t.includes('fog') || t.includes('mist') || t.includes('haze')) return 'Foggy';
     if (t.includes('cloud') || t.includes('overcast')) return 'Cloudy';
     if (t.includes('clear') || t.includes('sunny')) return 'Sunny';
 
-    // Default
+    // Last resort
     return 'Cloudy';
   }
 
+  function renderMeta(loc, cur){
+    const name   = [loc?.name, loc?.region, loc?.country].filter(Boolean).join(', ');
+    const code   = cur?.condition?.code;
+    const text   = cur?.condition?.text || '—';
+    const ltime  = loc?.localtime ? `Local: ${loc.localtime}` : '';
+    const upd    = cur?.last_updated ? ` • API updated: ${cur.last_updated}` : '';
+    apiMeta.textContent = `${name} — API says: “${text}” (code ${code}) • ${ltime}${upd}`;
+  }
+
   async function loadCity(city){
-    currentCity=city; cityName.textContent=currentCity; gameEl.style.display='block'; resultEl.textContent=''; canGuess=false;
-    setStatus('Fetching weather for '+currentCity+'…'); setDebug('…');
-    const url='https://api.weatherapi.com/v1/current.json?key='+encodeURIComponent(API_KEY)+'&q='+encodeURIComponent(currentCity)+'&aqi=no';
+    currentCity = city;
+    cityName.textContent = currentCity;
+    gameEl.style.display = 'block';
+    resultEl.textContent = '';
+    apiMeta.textContent = '—';
+    canGuess = false;
+    setStatus('Fetching weather for '+currentCity+'…');
+    setDebug('…');
+
+    // Use q as given; WeatherAPI handles city,country best
+    const url = 'https://api.weatherapi.com/v1/current.json'
+              + '?key=' + encodeURIComponent(API_KEY)
+              + '&q='   + encodeURIComponent(currentCity)
+              + '&aqi=no';
+
     try{
-      const r=await fetch(url,{cache:'no-store'}); const txt=await r.text(); setDebug(txt);
-      if(!r.ok){ setStatus('HTTP '+r.status+' — see Debug',false); return; }
-      const data=JSON.parse(txt);
-      const cond=data.current?.condition || {code:1000,text:'Clear'};
-      currentCat=mapToCat(cond.code,cond.text);
-      setStatus('Live weather loaded',true); canGuess=true;
-    }catch(e){ setStatus('Network/CORS error',false); setDebug(String(e)); }
+      const r   = await fetch(url,{cache:'no-store'});
+      const txt = await r.text();
+      setDebug(txt);
+
+      if(!r.ok){
+        setStatus('HTTP '+r.status+' — see Debug', false);
+        return;
+      }
+      const data = JSON.parse(txt);
+
+      // If condition missing, do NOT force Sunny: mark unavailable
+      const cond = data?.current?.condition;
+      if(!cond || typeof cond.code !== 'number'){
+        renderMeta(data?.location, data?.current||{});
+        setStatus('No condition data from API', false);
+        currentCat = null;
+        canGuess = false;
+        return;
+      }
+
+      currentCat = mapToCat(cond.code, cond.text);
+      renderMeta(data.location, data.current);
+      setStatus('Live weather loaded', true);
+      canGuess = true;
+
+    }catch(e){
+      setStatus('Network/CORS error', false);
+      setDebug(String(e));
+    }
   }
 
   function guess(cat){
-    if(!canGuess)return; canGuess=false;
-    if(cat===currentCat){ score++; streak++; if(streak>best) best=streak; resultEl.className='result ok'; resultEl.textContent='✅ Correct! It is '+currentCat+' in '+currentCity+'.'; }
-    else { streak=0; resultEl.className='result bad'; resultEl.textContent='❌ Wrong. Actual: '+currentCat+'.'; }
+    if(!canGuess) return;
+    canGuess = false;
+    if(cat === currentCat){
+      score++; streak++; if(streak>best) best = streak;
+      resultEl.className = 'result ok';
+      resultEl.textContent = `✅ Correct! It is ${currentCat} in ${currentCity}.`;
+    }else{
+      streak = 0;
+      resultEl.className = 'result bad';
+      resultEl.textContent = `❌ Wrong. Actual: ${currentCat}.`;
+    }
     renderScore();
   }
 
-  // Build UI
-  CITIES.forEach(c=>{ const b=document.createElement('button'); b.textContent=c.split(',')[0]; b.className='ghost'; b.addEventListener('click',()=>loadCity(c)); cityBtns.appendChild(b); });
-  const rb=document.createElement('button'); rb.textContent='🎲 Random city'; rb.addEventListener('click',()=>loadCity(CITIES[Math.floor(Math.random()*CITIES.length)])); cityBtns.appendChild(rb);
-  CATS.forEach(c=>{ const b=document.createElement('button'); b.textContent=c.l; b.addEventListener('click',()=>guess(c.k)); guessBtns.appendChild(b); });
-
-  resetBtn.addEventListener('click',()=>{score=0;streak=0;best=0;renderScore();resultEl.textContent='';setStatus('Idle.')});
-  sameBtn .addEventListener('click',()=>{ if(currentCity) loadCity(currentCity); });
-  randBtn .addEventListener('click',()=>loadCity(CITIES[Math.floor(Math.random()*CITIES.length)]));
-
-  renderScore(); health.textContent='Ready ✅ Click a city to start.';
-});
-</script>
-</body>
-</html>
+  // Build UI (no inline handlers)
+  CITIES.forEach(c=>{
+    const b=document.createElement('button');
+    b.textContent = c.split(',')[0];
+    b.className   = 'ghost';
+    b.addEventListener('click',()=>loadCity(c));
+    cityBtns.appendChild(b);
+  });
+  const rb=document.createElement('button');
+  rb.textContent='🎲 Random
