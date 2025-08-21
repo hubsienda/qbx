@@ -1,78 +1,144 @@
-<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Is It Sunny or Raining?</title>
-<style>
-  body { font-family: sans-serif; background:#f8f8f8; color:#222; text-align:center; }
-  h1 { margin-top:20px; }
-  .cities { display:flex; flex-wrap:wrap; justify-content:center; margin:20px; gap:10px; }
-  .city { padding:10px 18px; background:#eee; border-radius:8px; cursor:pointer; }
-  .city:hover { background:#ddd; }
-  #result { margin-top:20px; font-size:1.3em; font-weight:bold; }
-  #debug { margin-top:15px; font-size:0.8em; color:#666; white-space:pre; text-align:left; max-width:500px; margin-left:auto; margin-right:auto; }
-</style>
-</head>
-<body>
+<!-- Minimal, rock-solid current weather fetcher for WeatherAPI.com -->
+<script type="module">
+const WEATHERAPI_KEY = "553b39e4a880493f8fe80855252108"; // your key
+const DEFAULT_CACHE_TTL_MS = 60_000;   // 60s (tweak if you like)
+const DEFAULT_TIMEOUT_MS   = 7_000;    // 7s hard timeout
+const MAX_RETRIES          = 2;        // total tries = 1 + MAX_RETRIES
 
-<h1>🌍 Guess the Weather!</h1>
-<p>Click a city and I’ll fetch the *real* weather.</p>
+/** Small helpers **/
+const sleep = (ms)=> new Promise(r=>setTimeout(r, ms));
+function withTimeout(promise, ms){
+  const ctrl = new AbortController();
+  const timer = setTimeout(()=>ctrl.abort(), ms);
+  return {
+    signal: ctrl.signal,
+    exec: (fn)=>Promise.race([
+      fn(ctrl.signal).finally(()=>clearTimeout(timer)),
+      new Promise((_,rej)=>ctrl.signal.addEventListener('abort', ()=>rej(new Error('Timeout'))))
+    ])
+  };
+}
+function now(){ return Date.now(); }
 
-<div class="cities" id="cities"></div>
-<div id="result">Idle. Click a city.</div>
-<div id="debug"></div>
-
-<script>
-const API_KEY = "553b39e4a880493f8fe80855252108"; // WeatherAPI key
-const CITIES = ["Rome","London","Madrid","Paris","Berlin","Tokyo","New York","Moscow","Sydney","Cairo","Mexico City","Toronto","Buenos Aires","Cape Town","Beijing","Delhi","Bangkok","Istanbul","Athens","Lisbon"];
-
-function mapWeather(code){
-  code = parseInt(code,10);
-  if(code === 1000) return "Sunny ☀️";                // clear
-  if([1003,1006,1009].includes(code)) return "Cloudy ☁️"; // cloudy variants
-  if([1030,1135,1147].includes(code)) return "Foggy 🌫️";  // fog/mist
-  if(code===1087 || (code>=1273 && code<=1282)) return "Stormy ⛈️"; // thunder
-  if((code>=1066 && code<=1237) || (code>=1249 && code<=1264)) return "Snowy ❄️"; // snow/sleet
-  if((code>=1063 && code<=1201) || (code>=1240 && code<=1246)) return "Rainy 🌧️"; // rain
-  return "Cloudy ☁️"; // fallback
+/** Local cache (per location string) **/
+function cacheGet(q){
+  try{
+    const raw = localStorage.getItem('wx:'+q);
+    if(!raw) return null;
+    const obj = JSON.parse(raw);
+    if(obj.expireAt && obj.expireAt > now()) return obj.data;
+    return null;
+  }catch{ return null; }
+}
+function cacheSet(q, data, ttlMs){
+  try{
+    localStorage.setItem('wx:'+q, JSON.stringify({ expireAt: now()+ttlMs, data }));
+  }catch{/* ignore quota */}
 }
 
-async function fetchWeather(city){
-  const url = `https://api.weatherapi.com/v1/current.json?key=${API_KEY}&q=${encodeURIComponent(city)}&aqi=no&_=${Date.now()}`;
-  const res = await fetch(url);
-  if(!res.ok) throw new Error("API error " + res.status);
-  return await res.json();
-}
+/** Robust fetch to WeatherAPI current.json */
+async function fetchCurrentWeather({ q, key=WEATHERAPI_KEY, timeoutMs=DEFAULT_TIMEOUT_MS, cacheTtlMs=DEFAULT_CACHE_TTL_MS }){
+  if(!q) throw new Error('Missing q (query). Use city, "lat,lon", postcode, or "auto:ip".');
+  // Try cache first
+  const cached = cacheGet(q);
+  if(cached) return { data: cached, fromCache:true };
 
-function makeCityButtons(){
-  const box = document.getElementById("cities");
-  CITIES.forEach(city=>{
-    const btn=document.createElement("div");
-    btn.className="city";
-    btn.textContent=city;
-    btn.onclick=async()=>{
-      document.getElementById("result").textContent=`Fetching ${city}...`;
-      try{
-        const data=await fetchWeather(city);
-        const cond=data.current.condition;
-        const mapped=mapWeather(cond.code);
-        document.getElementById("result").textContent=`${city}: ${mapped}`;
-        document.getElementById("debug").textContent=
-          `Raw: ${cond.text} (code ${cond.code})\nTemp: ${data.current.temp_c}°C`;
-      }catch(e){
-        document.getElementById("result").textContent="Error fetching weather.";
-        console.error(e);
+  // Retryable fetch
+  let attempt = 0, lastErr;
+  while(attempt <= MAX_RETRIES){
+    try{
+      const url = new URL('https://api.weatherapi.com/v1/current.json');
+      url.searchParams.set('key', key);
+      url.searchParams.set('q', q);
+      url.searchParams.set('aqi', 'no');
+      url.searchParams.set('_', String(now())); // cache-buster
+
+      const { exec } = withTimeout(null, timeoutMs);
+      const res = await exec(()=> fetch(url.toString(), { cache:'no-store' }));
+      if(!res.ok){
+        // 429/5xx → retry; 4xx (except 429) → fail fast
+        if(res.status === 429 || (res.status >= 500 && res.status < 600)){
+          const body = await res.text().catch(()=> '');
+          throw Object.assign(new Error('Retryable HTTP '+res.status), { status: res.status, body });
+        }else{
+          const body = await res.text().catch(()=> '');
+          throw Object.assign(new Error('HTTP '+res.status), { status: res.status, body });
+        }
       }
-    };
-    box.appendChild(btn);
-  });
+      const json = await res.json();
+      // Minimal shape guard
+      if(!json || !json.current || !json.location || !json.current.condition){
+        throw new Error('Unexpected API shape');
+      }
+      // Cache and return
+      cacheSet(q, json, cacheTtlMs);
+      return { data: json, fromCache:false };
+    }catch(err){
+      lastErr = err;
+      attempt++;
+      if(attempt > MAX_RETRIES) break;
+      // Exponential backoff: 300ms, 900ms…
+      const backoff = 300 * Math.pow(3, attempt-1);
+      await sleep(backoff);
+    }
+  }
+  throw lastErr || new Error('Unknown fetch error');
 }
 
-makeCityButtons();
+/** Convenience: pick the best "q"
+ * - Try high-accuracy geolocation if user allows
+ * - Else use WeatherAPI "auto:ip"
+ */
+async function detectQueryFallback(){
+  // Try Geolocation API for precise coords
+  if('geolocation' in navigator){
+    try{
+      const pos = await new Promise((resolve, reject)=>{
+        navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy:true, timeout:5000, maximumAge:30_000 });
+      });
+      const lat = pos.coords.latitude.toFixed(4);
+      const lon = pos.coords.longitude.toFixed(4);
+      return `${lat},${lon}`;
+    }catch{/* ignore and fallback */}
+  }
+  // IP fallback handled by WeatherAPI
+  return 'auto:ip';
+}
+
+/** Example usage — runs once on load and prints a neat summary */
+(async function init(){
+  const q = await detectQueryFallback(); // e.g., "41.9028,12.4964" or "auto:ip"
+  const { data, fromCache } = await fetchCurrentWeather({ q });
+
+  // Extract the essentials
+  const loc = data.location;
+  const cur = data.current;
+  const summary = {
+    name: `${loc.name}, ${loc.region || loc.country}`,
+    localtime: loc.localtime,
+    temp_c: cur.temp_c,
+    wind_kph: cur.wind_kph,
+    humidity: cur.humidity,
+    condition_text: cur.condition.text,
+    condition_code: cur.condition.code,
+    fromCache
+  };
+
+  // Render a minimal UI (optional — replace with your own)
+  const mount = document.createElement('div');
+  mount.style.cssText = "max-width:680px;margin:18px auto;padding:14px;border:1px solid #e8e8e8;border-radius:12px;background:#fff;text-align:left;font:14px/1.5 system-ui,Segoe UI,Inter,Arial";
+  mount.innerHTML = `
+    <div style="font-weight:700;font-size:16px;margin-bottom:6px;">${summary.name}</div>
+    <div>Local time: ${summary.localtime}</div>
+    <div>Temp: <b>${summary.temp_c}°C</b> • Wind: ${summary.wind_kph} km/h • Humidity: ${summary.humidity}%</div>
+    <div>Condition: ${summary.condition_text} (code ${summary.condition_code})</div>
+    <div style="color:#777;margin-top:6px">${summary.fromCache ? 'Served from 60s cache' : 'Live from WeatherAPI'} • Powered by <a href="https://www.weatherapi.com/" title="Weather API">WeatherAPI.com</a></div>
+  `;
+  document.body.appendChild(mount);
+})().catch(err=>{
+  const mount = document.createElement('pre');
+  mount.style.cssText = "max-width:680px;margin:18px auto;padding:14px;border:1px solid #f2c6c6;border-radius:12px;background:#fff0f0;color:#7a1f1f;white-space:pre-wrap";
+  mount.textContent = 'Weather error: ' + (err && err.message ? err.message : String(err));
+  document.body.appendChild(mount);
+});
 </script>
-<p style="margin-top:30px;font-size:0.8em;color:#666">
-Powered by <a href="https://www.weatherapi.com/" title="Weather API">WeatherAPI.com</a>
-</p>
-</body>
-</html>
