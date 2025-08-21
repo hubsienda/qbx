@@ -1,0 +1,202 @@
+<script>
+// ===== CONFIG =====
+var API_KEY = "553b39e4a880493f8fe80855252108";
+var SUGGEST = ["Rome","London","Madrid","Paris","Berlin","New York","Tokyo","Sydney","Mexico City","Cairo","Athens","Bangkok","Toronto","Dublin","Lisbon","Istanbul","Rio de Janeiro","Cape Town","Reykjavik","Wellington"];
+// ==================
+
+// Elements
+var qInput = document.getElementById('q');
+var goBtn  = document.getElementById('go');
+var rndBtn = document.getElementById('random');
+var statusEl = document.getElementById('status');
+
+var gameEl = document.getElementById('game');
+var cityNameEl = document.getElementById('cityName');
+var metaEl = document.getElementById('meta');
+var resultEl = document.getElementById('result');
+var debugEl = document.getElementById('debug');
+
+var scoreEl = document.getElementById('score');
+var streakEl = document.getElementById('streak');
+var bestEl = document.getElementById('best');
+var againBtn = document.getElementById('again');
+
+var btns = {
+  Sunny:  document.getElementById('gSunny'),
+  Cloudy: document.getElementById('gCloudy'),
+  Rainy:  document.getElementById('gRainy'),
+  Snowy:  document.getElementById('gSnowy'),
+  Stormy: document.getElementById('gStormy'),
+  Foggy:  document.getElementById('gFoggy')
+};
+
+// State
+var score = 0, streak = 0, best = 0;
+var currentQ = null, currentCat = null, canGuess = false;
+
+// Helpers
+function setStatus(msg, ok) {
+  statusEl.textContent = msg;
+  statusEl.className = 'status' + (ok === true ? ' ok' : ok === false ? ' bad' : '');
+}
+function renderScore() {
+  scoreEl.textContent = score;
+  streakEl.textContent = streak;
+  bestEl.textContent = best;
+}
+function rand(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+function trim(s) { return (s || '').replace(/^\s+|\s+$/g, ''); }
+
+// === CORRECTED: Map WeatherAPI condition code to category ===
+function mapToCat(code) {
+  code = parseInt(code, 10);
+
+  // Sunny / Clear
+  if (code === 1000) return 'Sunny';
+
+  // Cloudy (partly cloudy, overcast)
+  if ([1003, 1006, 1009].includes(code)) return 'Cloudy';
+
+  // Rainy (drizzle, rain, showers)
+  if (code >= 1063 && code <= 1072) return 'Rainy'; // patchy rain, drizzle
+  if (code >= 1150 && code <= 1189) return 'Rainy'; // more drizzle, rain, showers
+
+  // Snowy
+  if (code >= 1114 && code <= 1117) return 'Snowy'; // snow in patches
+  if (code >= 1192 && code <= 1237) return 'Snowy'; // heavy rain to snow
+  if (code >= 1249 && code <= 1264) return 'Snowy'; // sleet, ice, snow showers
+
+  // Stormy (thunder)
+  if (code >= 1087 && code <= 1087) return 'Stormy'; // thunder
+  if (code >= 1273 && code <= 1282) return 'Stormy'; // thunder with rain/snow
+
+  // Foggy / Mist
+  if (code >= 1030 && code <= 1030) return 'Foggy'; // mist
+  if (code >= 1135 && code <= 1145) return 'Foggy'; // fog, freezing fog
+
+  // Default fallback
+  return 'Cloudy';
+}
+
+// XHR (ES5-safe)
+function xhrGet(url, cb) {
+  var x = new XMLHttpRequest();
+  x.open('GET', url, true);
+  x.onreadystatechange = function () {
+    if (x.readyState === 4) cb(null, x.status, x.responseText);
+  };
+  x.onerror = function (e) { cb(e || new Error('Network error')); };
+  x.send();
+}
+
+function fetchWeather(q) {
+  currentQ = q;
+  setStatus('Fetching weather for "' + q + '" ...');
+  resultEl.textContent = ''; 
+  metaEl.textContent = '—'; 
+  debugEl.textContent = '—';
+  gameEl.style.display = 'block';
+  cityNameEl.textContent = q;
+
+  // 🔴 CRITICAL FIX: Removed extra spaces in URL
+  var url = 'https://api.weatherapi.com/v1/current.json' +
+    '?key=' + encodeURIComponent(API_KEY) +
+    '&q=' + encodeURIComponent(q) +
+    '&aqi=no' +
+    '&_=' + Date.now(); // cache-buster
+
+  xhrGet(url, function (err, status, body) {
+    if (err) {
+      setStatus('Network error', false);
+      debugEl.textContent = String(err);
+      canGuess = false;
+      return;
+    }
+    debugEl.textContent = body;
+
+    if (String(status).charAt(0) !== '2') {
+      setStatus('HTTP ' + status + ' — see Debug', false);
+      canGuess = false;
+      return;
+    }
+
+    var data;
+    try {
+      data = JSON.parse(body);
+    } catch (e) {
+      setStatus('Parse error — see Debug', false);
+      canGuess = false;
+      return;
+    }
+
+    if (!data || !data.current || !data.current.condition || !data.location) {
+      setStatus('Unexpected API response — see Debug', false);
+      canGuess = false;
+      return;
+    }
+
+    var cond = data.current.condition;
+    var loc = data.location;
+    currentCat = mapToCat(cond.code);
+
+    var nameBits = [];
+    if (loc.name) nameBits.push(loc.name);
+    if (loc.region) nameBits.push(loc.region);
+    if (loc.country) nameBits.push(loc.country);
+    var fullName = nameBits.join(', ');
+
+    metaEl.textContent = (fullName || q)
+      + ' — API: "' + cond.text + '" (code ' + cond.code + '), '
+      + 'Temp ' + data.current.temp_c + '°C • Local ' + (loc.localtime || '-');
+
+    setStatus('Live weather loaded', true);
+    canGuess = true;
+  });
+}
+
+function onGuess(cat) {
+  if (!canGuess) return;
+  canGuess = false;
+  if (cat === currentCat) {
+    score++;
+    streak++;
+    if (streak > best) best = streak;
+    resultEl.className = 'result ok';
+    resultEl.textContent = 'Correct! It is ' + currentCat + ' in ' + currentQ + '.';
+  } else {
+    streak = 0;
+    resultEl.className = 'result bad';
+    resultEl.textContent = 'Wrong. Actual: ' + currentCat + '.';
+  }
+  renderScore();
+}
+
+// Wire up
+goBtn.addEventListener('click', function () {
+  var q = trim(qInput.value);
+  if (!q) {
+    setStatus('Please type a city/postcode/coords.', false);
+    return;
+  }
+  fetchWeather(q);
+});
+qInput.addEventListener('keydown', function (ev) {
+  if (ev.key === 'Enter' || ev.keyCode === 13) { goBtn.click(); }
+});
+rndBtn.addEventListener('click', function () {
+  var pick = rand(SUGGEST);
+  qInput.value = pick;
+  fetchWeather(pick);
+});
+againBtn.addEventListener('click', function () {
+  if (currentQ) fetchWeather(currentQ);
+});
+
+// Button listeners
+Object.keys(btns).forEach(function (cat) {
+  btns[cat].addEventListener('click', function () { onGuess(cat); });
+});
+
+// Init
+renderScore();
+</script>
