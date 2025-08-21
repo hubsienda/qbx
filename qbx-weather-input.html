@@ -2,244 +2,185 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>QBX Weather Guess — Any City</title>
+<title>QBX Weather Reality Check</title>
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <style>
-  body{font-family:system-ui,Arial,sans-serif;margin:0;background:#f7f7f8;color:#111}
-  .wrap{max-width:900px;margin:0 auto;padding:18px}
-  h1{font-size:32px;margin:0 0 8px}
-  .lead{color:#666;margin:0 0 14px}
-  .panel{background:#fff;border:1px solid #e9e9ee;border-radius:14px;padding:14px;margin:12px 0}
-  .row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
-  input,button{border-radius:10px;padding:10px 12px;font-weight:600}
-  input{border:1px solid #d7d7de;flex:1;min-width:220px}
+  body{font-family:system-ui,Arial,sans-serif;margin:0;background:#f6f6f8;color:#111}
+  .wrap{max-width:980px;margin:0 auto;padding:18px}
+  h1{margin:0 0 10px}
+  .panel{background:#fff;border:1px solid #e5e5ee;border-radius:12px;padding:12px;margin:12px 0}
+  .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  input,button{border-radius:10px;padding:9px 12px;font-weight:600}
+  input{border:1px solid #d7d7de;min-width:220px;flex:1}
   button{border:0;background:#111;color:#fff;cursor:pointer}
   button:hover{background:#222}
-  .ghost{background:#eee;color:#111;border:0}
+  .ghost{background:#eee;color:#111}
   .ghost:hover{background:#ddd}
-  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px}
-  .city{font-size:22px;font-weight:800;margin:10px 0}
-  .status{font-size:14px;margin-top:6px;color:#666}
-  .status.ok{color:#127a2a;font-weight:700}
-  .status.bad{color:#b3261e;font-weight:700}
-  .result{margin-top:10px;font-size:16px}
-  .result.ok{color:#127a2a;font-weight:700}
-  .result.bad{color:#b3261e;font-weight:700}
-  .score{margin-top:10px;display:flex;gap:12px;flex-wrap:wrap;align-items:center}
-  .score strong{font-size:17px}
-  details{margin-top:6px}
-  pre{background:#111;color:#fff;padding:10px;border-radius:8px;white-space:pre-wrap;overflow:auto}
-  .small{font-size:13px;color:#666}
+  table{width:100%;border-collapse:collapse;margin-top:10px}
+  th,td{border-bottom:1px solid #eee;padding:8px 6px;text-align:left;font-size:14px}
+  th{background:#fafafd}
+  .muted{color:#666}
+  .ok{color:#127a2a;font-weight:700}
+  .bad{color:#b3261e;font-weight:700}
+  code{background:#f0f0f4;padding:2px 4px;border-radius:6px}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <h1>QBX Weather Guess</h1>
-  <p class="lead">Type any city (or postcode, or "lat,lon"), fetch live weather, then guess.</p>
-
-  <section class="panel">
+  <h1>QBX Weather Reality Check</h1>
+  <div class="panel">
     <div class="row">
       <input id="q" type="text" placeholder='e.g. "New York", "SW1A", or "41.9028,12.4964"'>
-      <button id="go">Fetch weather</button>
-      <button id="random" class="ghost">Surprise me</button>
+      <button id="add">Add</button>
+      <button id="presets" class="ghost">Load presets</button>
+      <button id="clear" class="ghost">Clear</button>
+      <span id="status" class="muted">Ready.</span>
     </div>
-    <div id="status" class="status">Idle. Enter a place and press "Fetch weather".</div>
-  </section>
-
-  <section class="panel" id="game" style="display:none">
-    <div class="city" id="cityName">—</div>
-    <div class="small" id="meta">—</div>
-
-    <div class="grid" style="margin-top:10px">
-      <button class="ghost" id="gSunny">Sunny</button>
-      <button class="ghost" id="gCloudy">Cloudy</button>
-      <button class="ghost" id="gRainy">Rainy</button>
-      <button class="ghost" id="gSnowy">Snowy</button>
-      <button class="ghost" id="gStormy">Stormy</button>
-      <button class="ghost" id="gFoggy">Foggy</button>
-    </div>
-
-    <div id="result" class="result"></div>
-
-    <div class="score">
-      <div><strong>Score:</strong> <span id="score">0</span></div>
-      <div><strong>Streak:</strong> <span id="streak">0</span></div>
-      <div><strong>Best:</strong> <span id="best">0</span></div>
-      <button id="again" class="ghost">Fetch again</button>
-    </div>
-
-    <details>
-      <summary class="small">Debug (raw WeatherAPI response)</summary>
-      <pre id="debug">—</pre>
-    </details>
-  </section>
-
-  <p class="small">Powered by <a href="https://www.weatherapi.com/" title="Weather API">WeatherAPI.com</a></p>
+    <table>
+      <thead>
+        <tr>
+          <th>#</th><th>Query</th><th>Resolved location</th><th>Cond text</th><th>Code</th><th>Bucket</th><th>Temp °C</th><th>Local time</th>
+        </tr>
+      </thead>
+      <tbody id="tbody"></tbody>
+    </table>
+    <p class="muted" style="margin-top:8px">Powered by <a href="https://www.weatherapi.com/" title="Weather API">WeatherAPI.com</a></p>
+  </div>
 </div>
 
 <script>
 // ===== CONFIG =====
 var API_KEY = "553b39e4a880493f8fe80855252108";
-var SUGGEST = ["Rome","London","Madrid","Paris","Berlin","New York","Tokyo","Sydney","Mexico City","Cairo","Athens","Bangkok","Toronto","Dublin","Lisbon","Istanbul","Rio de Janeiro","Cape Town","Reykjavik","Wellington"];
 // ==================
 
-// Elements
-var qInput = document.getElementById('q');
-var goBtn  = document.getElementById('go');
-var rndBtn = document.getElementById('random');
-var statusEl = document.getElementById('status');
-
-var gameEl = document.getElementById('game');
-var cityNameEl = document.getElementById('cityName');
-var metaEl = document.getElementById('meta');
-var resultEl = document.getElementById('result');
-var debugEl = document.getElementById('debug');
-
-var scoreEl = document.getElementById('score');
-var streakEl = document.getElementById('streak');
-var bestEl = document.getElementById('best');
-var againBtn = document.getElementById('again');
-
-var btns = {
-  Sunny:  document.getElementById('gSunny'),
-  Cloudy: document.getElementById('gCloudy'),
-  Rainy:  document.getElementById('gRainy'),
-  Snowy:  document.getElementById('gSnowy'),
-  Stormy: document.getElementById('gStormy'),
-  Foggy:  document.getElementById('gFoggy')
-};
-
-// State
-var score=0, streak=0, best=0;
-var currentQ=null, currentCat=null, canGuess=false;
-
-// Helpers
-function setStatus(msg, ok){
-  statusEl.textContent = msg;
-  statusEl.className = 'status' + (ok===true?' ok': ok===false?' bad':'');
-}
-function renderScore(){ scoreEl.textContent=score; streakEl.textContent=streak; bestEl.textContent=best; }
-function rand(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
-function trim(s){ return (s||'').replace(/^\s+|\s+$/g,''); }
-
-// WeatherAPI condition.code -> category (code-only, no text guessing)
-function mapToCat(code){
+// Mapping: WeatherAPI condition.code -> our 6 buckets (code-only; no text guessing)
+function mapToBucket(code){
   code = parseInt(code,10);
-  if (code===1087 || (code>=1273 && code<=1282)) return 'Stormy'; // thunder
-  if (code===1063) return 'Rainy';
-  if (code>=1150 && code<=1171) return 'Rainy'; // drizzle / freezing drizzle
-  if (code>=1180 && code<=1201) return 'Rainy'; // rain / freezing rain
-  if (code>=1240 && code<=1246) return 'Rainy'; // rain showers
-  if (code===1066 || code===1069) return 'Snowy';
-  if (code===1114 || code===1117) return 'Snowy';
-  if (code>=1204 && code<=1207) return 'Snowy'; // sleet
-  if (code>=1210 && code<=1237) return 'Snowy'; // snow variants
-  if (code>=1249 && code<=1264) return 'Snowy'; // ice/sleet showers
-  if (code===1030 || code===1135 || code===1147) return 'Foggy'; // fog/mist
-  if (code===1003 || code===1006 || code===1009) return 'Cloudy'; // cloudy
-  if (code===1000) return 'Sunny'; // clear
-  return 'Cloudy'; // safe fallback
+  // Storms / thunder
+  if (code === 1087 || (code >= 1273 && code <= 1282)) return 'Stormy';
+  // Rain & drizzle (incl. freezing)
+  if (code === 1063) return 'Rainy';
+  if (code >= 1150 && code <= 1171) return 'Rainy';
+  if (code >= 1180 && code <= 1201) return 'Rainy';
+  if (code >= 1240 && code <= 1246) return 'Rainy';
+  // Snow / sleet / ice pellets / blizzard
+  if (code === 1066 || code === 1069) return 'Snowy';
+  if (code === 1114 || code === 1117) return 'Snowy';
+  if (code >= 1204 && code <= 1207) return 'Snowy';
+  if (code >= 1210 && code <= 1237) return 'Snowy';
+  if (code >= 1249 && code <= 1264) return 'Snowy';
+  // Fog / mist
+  if (code === 1030 || code === 1135 || code === 1147) return 'Foggy';
+  // Clouds
+  if (code === 1003 || code === 1006 || code === 1009) return 'Cloudy';
+  // Clear
+  if (code === 1000) return 'Sunny';
+  // Default
+  return 'Cloudy';
 }
 
-// XHR (ES5-safe)
+// XHR helper (ES5)
 function xhrGet(url, cb){
   var x = new XMLHttpRequest();
   x.open('GET', url, true);
-  x.onreadystatechange = function(){
-    if (x.readyState === 4) cb(null, x.status, x.responseText);
-  };
+  x.onreadystatechange = function(){ if (x.readyState === 4) cb(null, x.status, x.responseText); };
   x.onerror = function(e){ cb(e || new Error('Network error')); };
   x.send();
 }
 
-function fetchWeather(q){
-  currentQ = q;
-  setStatus('Fetching weather for "' + q + '" ...');
-  resultEl.textContent=''; metaEl.textContent='—'; debugEl.textContent='—';
-  gameEl.style.display='block';
-  cityNameEl.textContent = q;
+var tbody = document.getElementById('tbody');
+var statusEl = document.getElementById('status');
+var qInput = document.getElementById('q');
+var addBtn = document.getElementById('add');
+var presetsBtn = document.getElementById('presets');
+var clearBtn = document.getElementById('clear');
 
+var rowCount = 0;
+
+function setStatus(msg, cls){
+  statusEl.textContent = msg;
+  statusEl.className = (cls||'muted');
+}
+
+function addRow(data, q){
+  rowCount += 1;
+  var tr = document.createElement('tr');
+
+  function td(txt, cls){
+    var el = document.createElement('td');
+    el.textContent = txt;
+    if (cls) el.className = cls;
+    return el;
+  }
+
+  if (!data || !data.current || !data.location || !data.current.condition){
+    tr.appendChild(td(String(rowCount)));
+    tr.appendChild(td(q || '—'));
+    tr.appendChild(td('—'));
+    tr.appendChild(td('ERROR', 'bad'));
+    tr.appendChild(td('—'));
+    tr.appendChild(td('—'));
+    tr.appendChild(td('—'));
+    tr.appendChild(td('—'));
+    tbody.appendChild(tr);
+    return;
+  }
+
+  var loc = data.location;
+  var cur = data.current;
+  var cond = cur.condition;
+  var bucket = mapToBucket(cond.code);
+
+  var resolved = [];
+  if (loc.name)   resolved.push(loc.name);
+  if (loc.region) resolved.push(loc.region);
+  if (loc.country)resolved.push(loc.country);
+
+  tr.appendChild(td(String(rowCount)));
+  tr.appendChild(td(q));
+  tr.appendChild(td(resolved.join(', ')));
+  tr.appendChild(td(cond.text));
+  tr.appendChild(td(String(cond.code)));
+  tr.appendChild(td(bucket));
+  tr.appendChild(td(String(cur.temp_c)));
+  tr.appendChild(td(loc.localtime || '—'));
+  tbody.appendChild(tr);
+}
+
+function fetchOne(q){
+  setStatus('Fetching "'+q+'" …');
   var url = 'https://api.weatherapi.com/v1/current.json'
           + '?key=' + encodeURIComponent(API_KEY)
           + '&q='   + encodeURIComponent(q)
           + '&aqi=no'
-          + '&_='   + Date.now(); // cache-buster
+          + '&_='   + Date.now();
 
   xhrGet(url, function(err, status, body){
-    if(err){ setStatus('Network error', false); debugEl.textContent=String(err); canGuess=false; return; }
-    debugEl.textContent = body;
-    if(String(status).charAt(0) !== '2'){
-      setStatus('HTTP ' + status + ' — see Debug', false);
-      canGuess=false; return;
-    }
-    var data;
-    try{ data = JSON.parse(body); }catch(e){ setStatus('Parse error — see Debug', false); canGuess=false; return; }
-
-    if(!data || !data.current || !data.current.condition || !data.location){
-      setStatus('Unexpected API shape — see Debug', false); canGuess=false; return;
-    }
-
-    var cond = data.current.condition;
-    var loc  = data.location;
-    currentCat = mapToCat(cond.code);
-
-    var nameBits = [];
-    if(loc.name) nameBits.push(loc.name);
-    if(loc.region) nameBits.push(loc.region);
-    if(loc.country) nameBits.push(loc.country);
-    var fullName = nameBits.join(', ');
-
-    metaEl.textContent = (fullName || q)
-      + ' — API: "' + cond.text + '" (code ' + cond.code + '), '
-      + 'Temp ' + data.current.temp_c + '°C • Local ' + (loc.localtime || '-');
-
-    setStatus('Live weather loaded', true);
-    canGuess = true;
+    if (err){ setStatus('Network error', 'bad'); addRow(null, q); return; }
+    if (String(status).charAt(0) !== '2'){ setStatus('HTTP '+status+' — see console', 'bad'); try{console.log(body);}catch(e){} addRow(null, q); return; }
+    var json;
+    try{ json = JSON.parse(body); }catch(e){ setStatus('Parse error', 'bad'); addRow(null, q); return; }
+    addRow(json, q);
+    setStatus('Done.');
   });
 }
 
-function onGuess(cat){
-  if(!canGuess) return;
-  canGuess=false;
-  if(cat === currentCat){
-    score++; streak++; if(streak>best) best=streak;
-    resultEl.className='result ok';
-    resultEl.textContent='Correct! It is ' + currentCat + ' in ' + currentQ + '.';
-  }else{
-    streak=0;
-    resultEl.className='result bad';
-    resultEl.textContent='Wrong. Actual: ' + currentCat + '.';
-  }
-  renderScore();
-}
+addBtn.onclick = function(){
+  var q = (qInput.value || '').replace(/^\s+|\s+$/g,'');
+  if(!q){ setStatus('Type a place first', 'bad'); return; }
+  fetchOne(q);
+};
 
-// Wire up
-goBtn.addEventListener('click', function(){
-  var q = trim(qInput.value);
-  if(!q){ setStatus('Please type a city/postcode/coords.', false); return; }
-  fetchWeather(q);
-});
 qInput.addEventListener('keydown', function(ev){
-  if(ev.key === 'Enter' || ev.keyCode === 13){ goBtn.click(); }
-});
-rndBtn.addEventListener('click', function(){
-  var pick = rand(SUGGEST);
-  qInput.value = pick;
-  fetchWeather(pick);
-});
-againBtn.addEventListener('click', function(){
-  if(currentQ) fetchWeather(currentQ);
+  if (ev.key === 'Enter' || ev.keyCode === 13) addBtn.click();
 });
 
-btns.Sunny.addEventListener('click',  function(){ onGuess('Sunny');  });
-btns.Cloudy.addEventListener('click', function(){ onGuess('Cloudy'); });
-btns.Rainy.addEventListener('click',  function(){ onGuess('Rainy');  });
-btns.Snowy.addEventListener('click',  function(){ onGuess('Snowy');  });
-btns.Stormy.addEventListener('click', function(){ onGuess('Stormy'); });
-btns.Foggy.addEventListener('click',  function(){ onGuess('Foggy');  });
+presetsBtn.onclick = function(){
+  var list = ["Rome","London","New York","Paris","Berlin","Tokyo","Sydney","Cairo","Mexico City","Toronto","Athens","Bangkok","Dublin","Lisbon","Istanbul","Cape Town","Reykjavik","Wellington","Delhi","Jakarta"];
+  for (var i=0;i<list.length;i++) fetchOne(list[i]);
+};
 
-// Init
-renderScore();
+clearBtn.onclick = function(){ tbody.innerHTML=''; rowCount=0; setStatus('Cleared.'); };
 </script>
 </body>
 </html>
