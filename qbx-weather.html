@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>QBX Weather Guess</title>
+<style>
+  body{font-family:system-ui,Arial,sans-serif;margin:0;background:#fff;color:#111}
+  .wrap{max-width:900px;margin:0 auto;padding:18px}
+  #health{font-size:13px;margin-bottom:6px;color:#666}
+  h1{font-size:clamp(24px,4.5vw,34px);margin:0 0 8px}
+  .lead{color:#666;margin:0 0 14px}
+  .panel{background:#fafafa;border:1px solid #ddd;border-radius:12px;padding:14px;margin:12px 0}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px}
+  button{cursor:pointer;border:0;border-radius:10px;padding:10px 12px;font-weight:600;background:#111;color:#fff}
+  button:hover{background:#222}
+  .ghost{background:#eee;color:#111}.ghost:hover{background:#ddd}
+  .city{font-size:clamp(22px,4vw,28px);font-weight:800;margin:10px 0}
+  .result{margin-top:10px;font-size:16px}
+  .ok{color:#127a2a;font-weight:700}.bad{color:#b3261e;font-weight:700}
+  .score{margin-top:10px;display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+  .score strong{font-size:17px}
+  details{margin-top:6px}.small{font-size:13px;color:#666}
+  pre{background:#111;color:#fff;padding:10px;border-radius:8px;white-space:pre-wrap;overflow:auto}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div id="health">Booting…</div>
+  <h1>🌍 QBX Weather Guess</h1>
+  <p class="lead">Click a city, fetch live weather, and guess. If you’re wrong, the “AI” smirks.</p>
+
+  <section class="panel">
+    <div id="cityBtns" class="grid"></div>
+    <p id="status" class="small">Idle. Click a city.</p>
+  </section>
+
+  <section class="panel" id="game" style="display:none">
+    <h2 class="city" id="cityName">—</h2>
+    <div class="grid" id="guessBtns"></div>
+    <div class="result" id="result"></div>
+    <div class="score">
+      <div><strong>Score:</strong> <span id="score">0</span></div>
+      <div><strong>Streak:</strong> <span id="streak">0</span></div>
+      <div><strong>Best:</strong> <span id="best">0</span></div>
+      <button id="resetBtn" class="ghost">Reset score</button>
+      <button id="sameBtn">Next (same city)</button>
+      <button id="randBtn" class="ghost">Next (random)</button>
+    </div>
+    <details><summary class="small">Debug</summary><pre id="debug">—</pre></details>
+  </section>
+
+  <p class="small">Powered by <a href="https://www.weatherapi.com/" title="Weather API">WeatherAPI.com</a></p>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const API_KEY = "553b39e4a880493f8fe80855252108"; // your WeatherAPI key
+  const CITIES = ["Rome, Italy","London, United Kingdom","Madrid, Spain","Paris, France","Berlin, Germany","Tokyo, Japan","New York, USA","Washington, USA","Ottawa, Canada","Mexico City, Mexico","Brasilia, Brazil","Buenos Aires, Argentina","Cairo, Egypt","Nairobi, Kenya","New Delhi, India","Bangkok, Thailand","Jakarta, Indonesia","Canberra, Australia","Wellington, New Zealand","Singapore"];
+  const CATS   = [{k:"Sunny",l:"☀️ Sunny"},{k:"Cloudy",l:"☁️ Cloudy"},{k:"Rainy",l:"🌧️ Rainy"},{k:"Snowy",l:"❄️ Snowy"},{k:"Stormy",l:"⛈️ Stormy"},{k:"Foggy",l:"🌫️ Foggy"}];
+
+  const health=document.getElementById('health'), statusEl=document.getElementById('status'), debugEl=document.getElementById('debug');
+  const cityBtns=document.getElementById('cityBtns'), gameEl=document.getElementById('game'), cityName=document.getElementById('cityName');
+  const guessBtns=document.getElementById('guessBtns'), resultEl=document.getElementById('result');
+  const scoreEl=document.getElementById('score'), streakEl=document.getElementById('streak'), bestEl=document.getElementById('best');
+  const resetBtn=document.getElementById('resetBtn'), sameBtn=document.getElementById('sameBtn'), randBtn=document.getElementById('randBtn');
+
+  let score=0, streak=0, best=0, currentCity=null, currentCat=null, canGuess=false;
+
+  const setStatus=(m,ok=null)=>{statusEl.textContent=m; statusEl.style.color=ok===true?'#127a2a':ok===false?'#b3261e':'#666';};
+  const setDebug=(x)=>{try{debugEl.textContent=typeof x==='string'?x:JSON.stringify(x,null,2);}catch(e){debugEl.textContent=String(x)}};
+  const renderScore=()=>{scoreEl.textContent=score;streakEl.textContent=streak;bestEl.textContent=best;};
+  const mapToCat=(code,text)=>{const t=(text||'').toLowerCase();
+    if(t.includes('thunder'))return'Stormy';
+    if(t.includes('rain')||t.includes('drizzle'))return'Rainy';
+    if(t.includes('snow')||t.includes('sleet'))return'Snowy';
+    if(t.includes('fog')||t.includes('mist')||t.includes('haze'))return'Foggy';
+    if(t.includes('clear')||code===1000)return'Sunny';
+    if(t.includes('cloud')||code>=1003)return'Cloudy';
+    return'Cloudy';
+  };
+
+  async function loadCity(city){
+    currentCity=city; cityName.textContent=currentCity; gameEl.style.display='block'; resultEl.textContent=''; canGuess=false;
+    setStatus('Fetching weather for '+currentCity+'…'); setDebug('…');
+    const url='https://api.weatherapi.com/v1/current.json?key='+encodeURIComponent(API_KEY)+'&q='+encodeURIComponent(currentCity)+'&aqi=no';
+    try{
+      const r=await fetch(url,{cache:'no-store'}); const txt=await r.text(); setDebug(txt);
+      if(!r.ok){ setStatus('HTTP '+r.status+' — see Debug',false); return; }
+      const data=JSON.parse(txt); const cond=data.current?.condition||{code:1000,text:'Clear'};
+      currentCat=mapToCat(cond.code,cond.text); setStatus('Live weather loaded',true); canGuess=true;
+    }catch(e){ setStatus('Network/CORS error',false); setDebug(String(e)); }
+  }
+
+  function guess(cat){
+    if(!canGuess)return; canGuess=false;
+    if(cat===currentCat){ score++; streak++; if(streak>best) best=streak; resultEl.className='result ok'; resultEl.textContent='✅ Correct! It is '+currentCat+' in '+currentCity+'.'; }
+    else { streak=0; resultEl.className='result bad'; resultEl.textContent='❌ Wrong. Actual: '+currentCat+'.'; }
+    renderScore();
+  }
+
+  // Build UI
+  CITIES.forEach(c=>{ const b=document.createElement('button'); b.textContent=c.split(',')[0]; b.className='ghost'; b.addEventListener('click',()=>loadCity(c)); cityBtns.appendChild(b); });
+  const rb=document.createElement('button'); rb.textContent='🎲 Random city'; rb.addEventListener('click',()=>loadCity(CITIES[Math.floor(Math.random()*CITIES.length)])); cityBtns.appendChild(rb);
+  CATS.forEach(c=>{ const b=document.createElement('button'); b.textContent=c.l; b.addEventListener('click',()=>guess(c.k)); guessBtns.appendChild(b); });
+
+  resetBtn.addEventListener('click',()=>{score=0;streak=0;best=0;renderScore();resultEl.textContent='';setStatus('Idle.')});
+  sameBtn .addEventListener('click',()=>{ if(currentCity) loadCity(currentCity); });
+  randBtn .addEventListener('click',()=>loadCity(CITIES[Math.floor(Math.random()*CITIES.length)]));
+
+  renderScore(); health.textContent='Ready ✅ Click a city to start.';
+});
+</script>
+</body>
+</html>
