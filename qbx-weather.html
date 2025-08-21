@@ -7,6 +7,8 @@
   body{font-family:system-ui,Arial,sans-serif;margin:0;background:#fff;color:#111}
   .wrap{max-width:900px;margin:0 auto;padding:18px}
   #health{font-size:13px;margin-bottom:6px;color:#666}
+  #health.bad{color:#b3261e}
+  #health.ok{color:#127a2a}
   h1{font-size:clamp(24px,4.5vw,34px);margin:0 0 8px}
   .lead{color:#666;margin:0 0 14px}
   .panel{background:#fafafa;border:1px solid #ddd;border-radius:12px;padding:14px;margin:12px 0}
@@ -17,7 +19,7 @@
   .city{font-size:clamp(22px,4vw,28px);font-weight:800;margin:10px 0}
   .meta{font-size:13px;color:#555;margin:6px 0}
   .result{margin-top:10px;font-size:16px}
-  .ok{color:#127a2a;font-weight:700}.bad{color:#b3261e;font-weight:700}
+  .okText{color:#127a2a;font-weight:700}.badText{color:#b3261e;font-weight:700}
   .score{margin-top:10px;display:flex;gap:12px;flex-wrap:wrap;align-items:center}
   .score strong{font-size:17px}
   details{margin-top:6px}.small{font-size:13px;color:#666}
@@ -58,8 +60,25 @@
 </div>
 
 <script>
+/* ======== GLOBAL ERROR REPORTING ======== */
+(function(){
+  const health = document.getElementById('health');
+  window.addEventListener('error', function (e) {
+    health.className = 'bad';
+    health.innerHTML = 'JS error ❌: ' + (e?.message || e) + '<br><span class="small">(' + (e?.filename||'') + ':' + (e?.lineno||'') + ')</span>';
+  });
+  window.addEventListener('unhandledrejection', function (e) {
+    health.className = 'bad';
+    health.textContent = 'Promise error ❌: ' + (e?.reason && (e.reason.message||e.reason) || e);
+  });
+})();
+</script>
+
+<script>
+/* ======== APP ======== */
 document.addEventListener('DOMContentLoaded', () => {
   const API_KEY = "553b39e4a880493f8fe80855252108"; // your WeatherAPI key
+
   const CITIES = [
     "Rome, Italy","London, United Kingdom","Madrid, Spain","Paris, France","Berlin, Germany",
     "Tokyo, Japan","New York, USA","Washington, USA","Ottawa, Canada","Mexico City, Mexico",
@@ -76,6 +95,7 @@ document.addEventListener('DOMContentLoaded', () => {
     {k:"Foggy",  l:"🌫️ Foggy"}
   ];
 
+  // Elements
   const health   = document.getElementById('health');
   const statusEl = document.getElementById('status');
   const debugEl  = document.getElementById('debug');
@@ -94,6 +114,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const sameBtn  = document.getElementById('sameBtn');
   const randBtn  = document.getElementById('randBtn');
 
+  health.className = 'ok';
+  health.textContent = 'JS running ✅ Initialising…';
+
+  // State
   let score=0, streak=0, best=0, currentCity=null, currentCat=null, canGuess=false;
 
   const setStatus=(m,ok=null)=>{statusEl.textContent=m; statusEl.style.color=ok===true?'#127a2a':ok===false?'#b3261e':'#666';};
@@ -105,7 +129,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const t=(text||'').toLowerCase();
 
     // Storms / thunder
-    if (code===1087 || (code>=1273 && code<=1282)) return 'Stormy'; // thunder, thunder w/ rain/snow
+    if (code===1087 || (code>=1273 && code<=1282)) return 'Stormy'; // thunderstorms
 
     // Rain / showers (incl. patchy rain)
     if (code===1063 || (code>=1180 && code<=1201) || (code>=1240 && code<=1246)) return 'Rainy';
@@ -130,7 +154,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (t.includes('cloud') || t.includes('overcast')) return 'Cloudy';
     if (t.includes('clear') || t.includes('sunny')) return 'Sunny';
 
-    // Last resort
     return 'Cloudy';
   }
 
@@ -153,7 +176,6 @@ document.addEventListener('DOMContentLoaded', () => {
     setStatus('Fetching weather for '+currentCity+'…');
     setDebug('…');
 
-    // Use q as given; WeatherAPI handles city,country best
     const url = 'https://api.weatherapi.com/v1/current.json'
               + '?key=' + encodeURIComponent(API_KEY)
               + '&q='   + encodeURIComponent(currentCity)
@@ -170,7 +192,6 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       const data = JSON.parse(txt);
 
-      // If condition missing, do NOT force Sunny: mark unavailable
       const cond = data?.current?.condition;
       if(!cond || typeof cond.code !== 'number'){
         renderMeta(data?.location, data?.current||{});
@@ -196,11 +217,11 @@ document.addEventListener('DOMContentLoaded', () => {
     canGuess = false;
     if(cat === currentCat){
       score++; streak++; if(streak>best) best = streak;
-      resultEl.className = 'result ok';
+      resultEl.className = 'result okText';
       resultEl.textContent = `✅ Correct! It is ${currentCat} in ${currentCity}.`;
     }else{
       streak = 0;
-      resultEl.className = 'result bad';
+      resultEl.className = 'result badText';
       resultEl.textContent = `❌ Wrong. Actual: ${currentCat}.`;
     }
     renderScore();
@@ -215,4 +236,25 @@ document.addEventListener('DOMContentLoaded', () => {
     cityBtns.appendChild(b);
   });
   const rb=document.createElement('button');
-  rb.textContent='🎲 Random
+  rb.textContent='🎲 Random city';
+  rb.addEventListener('click',()=>loadCity(CITIES[Math.floor(Math.random()*CITIES.length)]));
+  cityBtns.appendChild(rb);
+
+  CATS.forEach(c=>{
+    const b=document.createElement('button');
+    b.textContent=c.l;
+    b.addEventListener('click',()=>guess(c.k));
+    guessBtns.appendChild(b);
+  });
+
+  resetBtn.addEventListener('click',()=>{score=0;streak=0;best=0;renderScore();resultEl.textContent='';setStatus('Idle.')});
+  sameBtn .addEventListener('click',()=>{ if(currentCity) loadCity(currentCity); });
+  randBtn .addEventListener('click',()=>loadCity(CITIES[Math.floor(Math.random()*CITIES.length)]));
+
+  renderScore();
+  health.className = 'ok';
+  health.textContent = 'Ready ✅ Click a city to start.';
+});
+</script>
+</body>
+</html>
