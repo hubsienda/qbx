@@ -55,8 +55,21 @@
 <script>
 document.addEventListener('DOMContentLoaded', () => {
   const API_KEY = "553b39e4a880493f8fe80855252108"; // your WeatherAPI key
-  const CITIES = ["Rome, Italy","London, United Kingdom","Madrid, Spain","Paris, France","Berlin, Germany","Tokyo, Japan","New York, USA","Washington, USA","Ottawa, Canada","Mexico City, Mexico","Brasilia, Brazil","Buenos Aires, Argentina","Cairo, Egypt","Nairobi, Kenya","New Delhi, India","Bangkok, Thailand","Jakarta, Indonesia","Canberra, Australia","Wellington, New Zealand","Singapore"];
-  const CATS   = [{k:"Sunny",l:"☀️ Sunny"},{k:"Cloudy",l:"☁️ Cloudy"},{k:"Rainy",l:"🌧️ Rainy"},{k:"Snowy",l:"❄️ Snowy"},{k:"Stormy",l:"⛈️ Stormy"},{k:"Foggy",l:"🌫️ Foggy"}];
+  const CITIES = [
+    "Rome, Italy","London, United Kingdom","Madrid, Spain","Paris, France","Berlin, Germany",
+    "Tokyo, Japan","New York, USA","Washington, USA","Ottawa, Canada","Mexico City, Mexico",
+    "Brasilia, Brazil","Buenos Aires, Argentina","Cairo, Egypt","Nairobi, Kenya",
+    "New Delhi, India","Bangkok, Thailand","Jakarta, Indonesia","Canberra, Australia",
+    "Wellington, New Zealand","Singapore"
+  ];
+  const CATS   = [
+    {k:"Sunny",  l:"☀️ Sunny"},
+    {k:"Cloudy", l:"☁️ Cloudy"},
+    {k:"Rainy",  l:"🌧️ Rainy"},
+    {k:"Snowy",  l:"❄️ Snowy"},
+    {k:"Stormy", l:"⛈️ Stormy"},
+    {k:"Foggy",  l:"🌫️ Foggy"}
+  ];
 
   const health=document.getElementById('health'), statusEl=document.getElementById('status'), debugEl=document.getElementById('debug');
   const cityBtns=document.getElementById('cityBtns'), gameEl=document.getElementById('game'), cityName=document.getElementById('cityName');
@@ -69,15 +82,36 @@ document.addEventListener('DOMContentLoaded', () => {
   const setStatus=(m,ok=null)=>{statusEl.textContent=m; statusEl.style.color=ok===true?'#127a2a':ok===false?'#b3261e':'#666';};
   const setDebug=(x)=>{try{debugEl.textContent=typeof x==='string'?x:JSON.stringify(x,null,2);}catch(e){debugEl.textContent=String(x)}};
   const renderScore=()=>{scoreEl.textContent=score;streakEl.textContent=streak;bestEl.textContent=best;};
-  const mapToCat=(code,text)=>{const t=(text||'').toLowerCase();
-    if(t.includes('thunder'))return'Stormy';
-    if(t.includes('rain')||t.includes('drizzle'))return'Rainy';
-    if(t.includes('snow')||t.includes('sleet'))return'Snowy';
-    if(t.includes('fog')||t.includes('mist')||t.includes('haze'))return'Foggy';
-    if(t.includes('clear')||code===1000)return'Sunny';
-    if(t.includes('cloud')||code>=1003)return'Cloudy';
-    return'Cloudy';
-  };
+
+  // Robust mapper using WeatherAPI condition codes + text
+  function mapToCat(code, text){
+    const t = (text||'').toLowerCase();
+
+    // --- Code-driven mapping (primary) ---
+    // Thunder / storm
+    if ((code >= 1273 && code <= 1282) || code === 1087) return 'Stormy'; // thunder with rain/snow; thunderstorms
+    // Heavy rain / showers
+    if ((code >= 1180 && code <= 1201) || (code >= 1240 && code <= 1246) || code === 1063) return 'Rainy';
+    // Snow / sleet / blizzard
+    if ((code >= 1210 && code <= 1237) || code === 1114 || code === 1117 || code === 1066 || code === 1069) return 'Snowy';
+    // Fog / mist / haze
+    if (code === 1030 || code === 1135 || code === 1147) return 'Foggy';
+    // Clouds (partly, cloudy, overcast)
+    if (code === 1003 || code === 1006 || code === 1009) return 'Cloudy';
+    // Clear
+    if (code === 1000) return 'Sunny';
+
+    // --- Text fallback (secondary) ---
+    if (t.includes('thunder')) return 'Stormy';
+    if (t.includes('rain') || t.includes('drizzle') || t.includes('shower')) return 'Rainy';
+    if (t.includes('snow') || t.includes('sleet') || t.includes('blizzard')) return 'Snowy';
+    if (t.includes('fog') || t.includes('mist') || t.includes('haze')) return 'Foggy';
+    if (t.includes('cloud') || t.includes('overcast')) return 'Cloudy';
+    if (t.includes('clear') || t.includes('sunny')) return 'Sunny';
+
+    // Default
+    return 'Cloudy';
+  }
 
   async function loadCity(city){
     currentCity=city; cityName.textContent=currentCity; gameEl.style.display='block'; resultEl.textContent=''; canGuess=false;
@@ -86,8 +120,10 @@ document.addEventListener('DOMContentLoaded', () => {
     try{
       const r=await fetch(url,{cache:'no-store'}); const txt=await r.text(); setDebug(txt);
       if(!r.ok){ setStatus('HTTP '+r.status+' — see Debug',false); return; }
-      const data=JSON.parse(txt); const cond=data.current?.condition||{code:1000,text:'Clear'};
-      currentCat=mapToCat(cond.code,cond.text); setStatus('Live weather loaded',true); canGuess=true;
+      const data=JSON.parse(txt);
+      const cond=data.current?.condition || {code:1000,text:'Clear'};
+      currentCat=mapToCat(cond.code,cond.text);
+      setStatus('Live weather loaded',true); canGuess=true;
     }catch(e){ setStatus('Network/CORS error',false); setDebug(String(e)); }
   }
 
