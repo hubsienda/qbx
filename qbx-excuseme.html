@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>ExcuseMe AI — Infinite Excuses</title>
+<style>
+  :root{
+    --bg:#0b0b0c; --ink:#f5f5f6; --muted:#b6b6ba; --card:#141417; --br:#232328;
+    --btn:#111113; --btnh:#1c1c20; --accent:#8b5cf6; --accent2:#22c55e;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 system-ui,-apple-system,Segoe UI,Inter,Roboto,Arial,sans-serif}
+  .wrap{max-width:980px;margin:0 auto;padding:24px}
+  h1{font-size:clamp(26px,5vw,40px);margin:0 0 6px}
+  .lead{color:var(--muted);margin:0 0 16px}
+  .panel{background:var(--card);border:1px solid var(--br);border-radius:16px;padding:16px;margin:14px 0}
+  .controls{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px;align-items:end}
+  label.small{font-size:13px;color:var(--muted);display:flex;flex-direction:column;gap:6px}
+  select,input{border-radius:12px;border:1px solid #2b2b31;background:var(--btn);color:var(--ink);padding:10px 12px;font-weight:600}
+  button{border-radius:12px;border:1px solid #2b2b31;background:var(--btn);color:var(--ink);padding:10px 12px;font-weight:700;cursor:pointer}
+  button.primary{background:var(--accent);border-color:var(--accent)}
+  button.success{background:var(--accent2);border-color:var(--accent2)}
+  button:hover{filter:brightness(1.06)}
+  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:10px}
+  .out{font-size:clamp(18px,2.6vw,22px);background:#0f0f12;border:1px dashed #3a3a42;border-radius:14px;padding:16px;min-height:110px}
+  .small{font-size:13px;color:var(--muted)}
+  .sep{height:1px;background:#212127;margin:12px 0}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>ExcuseMe AI</h1>
+  <p class="lead">Click the shiny button. Receive a <em>ridiculously plausible</em> excuse. Use responsibly (or not).</p>
+
+  <!-- Generator -->
+  <section class="panel">
+    <div class="controls">
+      <label class="small">Category
+        <select id="cat">
+          <option value="general" selected>General</option>
+          <option value="work">Work</option>
+          <option value="social">Social</option>
+          <option value="school">School/Uni</option>
+          <option value="travel">Travel</option>
+        </select>
+      </label>
+
+      <label class="small">Tone
+        <select id="tone">
+          <option value="polite" selected>Polite</option>
+          <option value="deadpan">Deadpan</option>
+          <option value="dramatic">Dramatic</option>
+          <option value="chaotic">Chaotic</option>
+        </select>
+      </label>
+
+      <label class="small">Your name (optional)
+        <input id="senderName" type="text" placeholder="e.g., Bob"/>
+      </label>
+
+      <button id="gen" class="primary">🎲 Generate excuse</button>
+      <button id="shorter">Shorter</button>
+      <button id="longer">Longer</button>
+    </div>
+
+    <div class="out" id="output">Your excuse will materialise here. Possibly wearing a lab coat.</div>
+
+    <div class="row">
+      <button id="apologise">Add apology</button>
+      <button id="escalate">Escalate recklessly</button>
+      <button id="copy">📋 Copy</button>
+      <button id="tweet">🐦 Tweet</button>
+      <span id="status" class="small" style="margin-left:auto">Ready.</span>
+    </div>
+  </section>
+
+  <!-- Email + Slack tools -->
+  <section class="panel">
+    <h3 style="margin:0 0 10px;font-size:18px">Send or share</h3>
+    <div class="controls">
+      <label class="small">Email To
+        <input id="emailTo" type="email" placeholder="boss@example.com"/>
+      </label>
+      <label class="small">Email Subject
+        <input id="emailSubject" type="text" placeholder="Running late"/>
+      </label>
+      <label class="small">Greeting (optional)
+        <input id="emailGreeting" type="text" placeholder="Hi team,"/>
+      </label>
+
+      <button id="emailBtn" class="success">✉️ Email this</button>
+
+      <label class="small">Slack extras
+        <select id="slackStyle">
+          <option value="plain" selected>Plain text</option>
+          <option value="bold">Bold first sentence</option>
+          <option value="format">*Bold* + _italics_</option>
+        </select>
+      </label>
+      <button id="slackCopy">💬 Copy for Slack</button>
+      <button id="slackOpen">🔗 Open Slack</button>
+    </div>
+    <p class="small" style="margin-top:8px">Tip: replace <code>app.slack.com</code> with your workspace deep-link if you like.</p>
+  </section>
+
+  <p class="small">House rules: keep it light; avoid real emergencies; no hate; when in doubt, choose <em>Polite</em> and apologise for real.</p>
+</div>
+
+<script>
+(function(){
+  // Utils
+  function r(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
+  function cap(s){ return s.charAt(0).toUpperCase()+s.slice(1); }
+  function setStatus(msg){ document.getElementById('status').textContent = msg; }
+
+  // Banks (British flavour)
+  const BANK = {
+    subject:{
+      work:["my laptop","our VPN","the build server","the staging site","my dev environment","the coffee machine","the printer queue","my timesheet portal","the KPI dashboard","the firewall rules","our SSO","my password manager","the Slack gremlins","the spreadsheet"],
+      social:["my flat buzzer","the lift","my kettle","the doorbell","the neighbour’s karaoke","the smoke alarm (false)","my houseplant support group","the cheese in the fridge","the sourdough starter","my Wi-Fi ritual","my oven timer"],
+      school:["the campus Wi-Fi","the library gates","my timetable app","the group chat mutiny","the lab booking","the printer credits","my coursework portal","the seminar link","the lecture capture"],
+      travel:["the Northern line","platform signage","the e-ticket barcode","gate B12","the luggage carousel","the shuttle bus","the motorway diversion","my bicycle chain","the scooter battery"],
+      general:["my doorbell","the weather app","my calendar alert","my brain’s firmware","the to-do list","the parcel courier","the landlord’s inspection","a surprise appointment","the council forms"]
+    },
+    verb:[
+      "crashed","froze","entered a union meeting","scheduled an unskippable update",
+      "went sentient and demanded rights","refused my credentials","decided it’s Sunday",
+      "spoke only in riddles","burst into song","locked me out","restarted for reasons",
+      "experienced a vibe malfunction"
+    ],
+    connector:["so","which means","therefore","and as a result","hence","so inevitably"],
+    consequence:[
+      "I’m pinned for a bit","I can’t step out just yet","I’m delayed by a smidge","I need a moment to stabilise things",
+      "I’ll miss the first bit","I’ll be fashionably late (by accident)","I must babysit it for ten minutes",
+      "I need to coax it with tea","I’m negotiating a ceasefire"
+    ],
+    politeEnd:["Appreciate your patience.","Really sorry for the faff.","Thanks for understanding.","I’ll make it up to you.","Cheers for bearing with."],
+    dramaticAdd:["There were sparks. Literal sparks.","I heard the Windows chime of despair.","Someone whispered ‘not again’.","I can smell the concept of smoke.","The vibe check failed at a molecular level."],
+    chaoticAdd:["A pigeon appears to be in charge now.","I’ve unionised with the kettle.","I must appease the fridge deity.","A toaster just won the argument.","The Wi-Fi is redistributing bandwidth like socialism."],
+    deadpanAdd:["This feels normal.","I accept my fate.","That tracks.","Unsurprising, honestly.","I remain calm."],
+    apologies:["Sorry about this.","My bad.","Apologies for the chaos.","Didn’t plan this, promise.","I owe you a biscuit."]
+  };
+
+  // Category routing
+  function pickSubject(cat){
+    if(BANK.subject[cat]) return r(BANK.subject[cat]);
+    return r([].concat(BANK.subject.work,BANK.subject.social,BANK.subject.school,BANK.subject.travel,BANK.subject.general));
+  }
+
+  // Core generator
+  function generateExcuse(opts){
+    const cat = opts.cat || "general";
+    const tone = opts.tone || "polite";
+    const length = opts.length || "normal";
+    const name = (opts.name || "").trim();
+
+    const subj = pickSubject(cat);
+    const v = r(BANK.verb);
+    const conn = r(BANK.connector);
+    const cons = r(BANK.consequence);
+
+    let line;
+    if(length==="short"){
+      line = (name?name+", ":"") + cap(subj) + " " + v + "; " + cons + ".";
+    } else if(length==="long"){
+      line = (name?name+", ":"") + "Right, so " + subj + " has " + v + ", " + conn + " " + cons + ". "
+           + "I’m initiating a tactical tea and a stern chat with reality.";
+    } else {
+      line = (name?name+", ":"") + cap(subj) + " " + v + ", " + conn + " " + cons + ".";
+    }
+
+    if(tone==="polite")      line += " " + r(BANK.politeEnd);
+    else if(tone==="dramatic") line += " " + r(BANK.dramaticAdd);
+    else if(tone==="chaotic")  line += " " + r(BANK.chaoticAdd);
+    else if(tone==="deadpan")  line += " " + r(BANK.deadpanAdd);
+
+    return line;
+  }
+
+  // DOM refs
+  const out = document.getElementById('output');
+  const catSel = document.getElementById('cat');
+  const toneSel = document.getElementById('tone');
+  const nameInput = document.getElementById('senderName');
+
+  function render(length){
+    const excuse = generateExcuse({ cat:catSel.value, tone:toneSel.value, length:length||"normal", name:nameInput.value });
+    out.textContent = excuse;
+    setStatus("Freshly minted.");
+  }
+
+  // Buttons: generator & tweaks
+  document.getElementById('gen').addEventListener('click', function(){ render(); });
+  document.getElementById('shorter').addEventListener('click', function(){ render("short"); });
+  document.getElementById('longer').addEventListener('click', function(){ render("long"); });
+  document.getElementById('apologise').addEventListener('click', function(){
+    out.textContent = out.textContent + " " + r(BANK.apologies);
+    setStatus("Politeness patch applied.");
+  });
+  document.getElementById('escalate').addEventListener('click', function(){
+    out.textContent = out.textContent + " It has escalated into paperwork and interpretive mime.";
+    setStatus("Escalated recklessly.");
+  });
+  document.getElementById('copy').addEventListener('click', function(){
+    const txt = out.textContent.trim(); if(!txt) return setStatus("Nothing to copy.");
+    (navigator.clipboard && navigator.clipboard.writeText(txt))
+      ? setStatus("Copied to clipboard.")
+      : setStatus("Clipboard blocked — select and copy manually.");
+  });
+  document.getElementById('tweet').addEventListener('click', function(){
+    const txt = encodeURIComponent(out.textContent.trim() || "Generating an excuse…");
+    window.open("https://twitter.com/intent/tweet?text="+txt, "_blank");
+  });
+
+  // ===== Email =====
+  function buildEmailBody(body, greeting, includeName){
+    const greeter = (greeting||"").trim();
+    const name = (nameInput.value||"").trim();
+    // British tidy line breaks
+    let lines = [];
+    if(greeter) lines.push(greeter);
+    lines.push(body);
+    if(includeName && name) { lines.push("", name); }
+    return lines.join("\n");
+  }
+  document.getElementById('emailBtn').addEventListener('click', function(){
+    const to   = (document.getElementById('emailTo').value||"").trim();
+    const subj = (document.getElementById('emailSubject').value||"Excuse for being late").trim();
+    const greet= (document.getElementById('emailGreeting').value||"Hi,").trim();
+    const txt  = out.textContent.trim();
+    if(!txt) return setStatus("Generate an excuse first.");
+    const body = buildEmailBody(txt, greet, true);
+    const href = "mailto:" + encodeURIComponent(to)
+      + "?subject=" + encodeURIComponent(subj)
+      + "&body=" + encodeURIComponent(body);
+    window.location.href = href;
+    setStatus("Opened your email client.");
+  });
+
+  // ===== Slack =====
+  function toSlackFormat(text, style){
+    text = text.trim();
+    if(style==="bold"){
+      // Bold the first sentence only
+      const m = text.match(/^(.+?[.!?])(.*)$/);
+      if(m) return "*" + m[1].trim() + "* " + m[2].trim();
+      return "*" + text + "*";
+    }
+    if(style==="format"){
+      const m = text.match(/^(.+?[.!?])(.*)$/);
+      const first = m ? m[1].trim() : text;
+      const rest  = m ? m[2].trim() : "";
+      return "*" + first + "* _" + rest + "_";
+    }
+    return text; // plain
+  }
+  document.getElementById('slackCopy').addEventListener('click', function(){
+    const style = document.getElementById('slackStyle').value;
+    const txt = out.textContent.trim(); if(!txt) return setStatus("Generate an excuse first.");
+    const formatted = toSlackFormat(txt, style);
+    (navigator.clipboard && navigator.clipboard.writeText(formatted))
+      ? setStatus("Copied Slack-formatted text.")
+      : setStatus("Clipboard blocked — select and copy manually.");
+  });
+  document.getElementById('slackOpen').addEventListener('click', function(){
+    // Replace this with your workspace deep link if desired, e.g. https://app.slack.com/client/TXXXXX/CYYYYY
+    window.open("https://app.slack.com/client", "_blank");
+  });
+
+  // First run
+  render();
+})();
+</script>
+</body>
+</html>
