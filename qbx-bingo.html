@@ -1,0 +1,279 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Buzzword Bingo — QBX</title>
+<style>
+  :root{
+    --bg:#0b0b0c; --ink:#f5f5f6; --muted:#b6b6ba; --card:#141417; --br:#232328;
+    --tile:#0f0f12; --tile-br:#2a2a30; --mark:#22c55e; --accent:#8b5cf6;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 system-ui,-apple-system,Segoe UI,Inter,Roboto,Arial,sans-serif}
+  .wrap{max-width:980px;margin:0 auto;padding:24px}
+  h1{font-size:clamp(24px,5vw,40px);margin:0 0 6px}
+  .lead{color:var(--muted);margin:0 0 16px}
+  .panel{background:var(--card);border:1px solid var(--br);border-radius:16px;padding:16px;margin:14px 0}
+  .controls{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  button,select{
+    cursor:pointer;border-radius:12px;border:1px solid #2b2b31;background:#111113;color:var(--ink);
+    padding:10px 12px;font-weight:700
+  }
+  .primary{background:var(--accent);border-color:var(--accent)}
+  button:hover{filter:brightness(1.06)}
+  .small{font-size:13px;color:var(--muted)}
+  /* Board */
+  .board{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-top:12px}
+  .cell{
+    background:var(--tile);border:1px solid var(--tile-br);border-radius:12px;
+    min-height:82px;padding:12px;display:flex;align-items:center;justify-content:center;
+    text-align:center;font-weight:700;line-height:1.25;user-select:none;
+    transition:transform .05s ease, background .2s ease, border-color .2s ease;
+  }
+  .cell:hover{transform:translateY(-1px)}
+  .cell.marked{background:#122016;border-color:#1f3d26;box-shadow:inset 0 0 0 2px var(--mark);color:#d9fbe3}
+  .cell.free{background:#1a1530;border-color:#2c2352;box-shadow:inset 0 0 0 2px var(--accent)}
+  .stats{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-top:10px}
+  .badge{background:#1c1c22;border:1px solid #2b2b31;border-radius:999px;padding:6px 10px}
+  .good{color:#22c55e}
+  .blink{animation:blink .7s linear 2}
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.35} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Buzzword Bingo</h1>
+  <p class="lead">Corporate nonsense, now gamified. Click squares as you hear them. Five in a row = <strong>BINGO!</strong></p>
+
+  <section class="panel">
+    <div class="controls">
+      <button id="newCard" class="primary">🎲 New card</button>
+      <button id="clearMarks">↺ Clear marks</button>
+      <button id="copyList">📋 Copy card as list</button>
+      <button id="printCard">🖨️ Print</button>
+
+      <span class="small" style="margin-left:auto">Region</span>
+      <select id="region">
+        <option value="uk" selected>UK 🇬🇧</option>
+        <option value="us">US 🇺🇸</option>
+      </select>
+      <span id="status" class="small">Ready.</span>
+    </div>
+
+    <div id="board" class="board" aria-label="Bingo board"></div>
+
+    <div class="stats">
+      <span class="badge">Bingos: <strong id="bingos" class="good">0</strong></span>
+      <span class="badge">Marked: <strong id="marked">0/25</strong></span>
+      <span class="small" id="tip">Tip: centre is FREE and auto-marked.</span>
+    </div>
+  </section>
+
+  <p class="small">Toggle UK/US to flavour the jargon. Keep it cheeky, not cruel.</p>
+</div>
+
+<script>
+// ===== Buzzword banks =====
+// Shared works in both regions
+var WORDS_SHARED = [
+  "synergy","granular","leverage","bandwidth","low-hanging fruit","circle back","touch base",
+  "deep dive","move the needle","pain point","quick win","pivot","actionable","stakeholders",
+  "north star","bleeding edge","best practice","value-add","on the same page","alignment",
+  "deliverables","roadmap","paradigm","boil the ocean","thought leadership","heads-up",
+  "run it up the flagpole","hard stop","parking lot","reach out","mission-critical",
+  "single source of truth","KPI","OKR","escalate","ROI","ideate","workstream","holistic",
+  "deck","BAU","capacity","go-live","right-size","sprint","burndown","MVP","GTM","timebox",
+  "optics","guardrails","comms","charter","lift and shift","table stakes","cash burn","runway",
+  "evergreen","land and expand","nip in the bud","path to green","close the loop",
+  "data-driven","robust","turnkey","boilerplate","blue-sky thinking"
+];
+
+// UK-only flavour
+var WORDS_UK = [
+  "faff","under the bonnet","woolly","per my last","heads on sticks","park that",
+  "tiger team","heavy lift","quick sanity check","under review","postcode lottery",
+  "over the moon","full stop","have a natter","keen to","bits and bobs","dodgy",
+  "take it offline","whilst","cheers","mates rates","sorted","proper job","on the tin"
+];
+
+// US-only flavour
+var WORDS_US = [
+  "boil the frog","peel the onion","right out of the gate","peanut butter the effort",
+  "gain traction","keep me posted","double-click that","optimize at scale","offline convo",
+  "hard no","ASAP if not sooner","move the ball forward","open the kimono",
+  "Tiger Team™","rockstar engineer","hockey stick growth","soup to nuts","back of the napkin",
+  "let’s socialize this","circle the wagons","throw under the bus","raise the bar",
+  "take it to the next level","drill down","drop the ball","low touch","high touch"
+];
+
+// ===== State =====
+var SIZE = 5;
+var board = [];     // 5x5 strings
+var marks = [];     // 5x5 booleans
+var bingos = 0;
+var region = (function(){ try{ return localStorage.getItem('qbx_bingo_region') || 'uk'; }catch(e){ return 'uk'; } })();
+
+// ===== DOM =====
+var elBoard = document.getElementById('board');
+var elStatus = document.getElementById('status');
+var elBingos = document.getElementById('bingos');
+var elMarked = document.getElementById('marked');
+var elRegion = document.getElementById('region');
+elRegion.value = region;
+
+// ===== Helpers =====
+function shuffle(array){
+  var a = array.slice();
+  for(var i=a.length-1;i>0;i--){
+    var j = Math.floor(Math.random()*(i+1));
+    var t = a[i]; a[i]=a[j]; a[j]=t;
+  }
+  return a;
+}
+function setStatus(msg){ elStatus.textContent = msg; }
+function cellId(r,c){ return 'cell-'+r+'-'+c; }
+function poolForRegion(){
+  var pool = WORDS_SHARED.slice();
+  if(region === 'uk') pool = pool.concat(WORDS_UK);
+  else pool = pool.concat(WORDS_US);
+  return pool;
+}
+
+function generateCard(){
+  var pool = shuffle(poolForRegion());
+  var needed = SIZE*SIZE - 1; // one slot is FREE
+  var chosen = pool.slice(0, needed);
+
+  board = [];
+  marks = [];
+  var k = 0;
+  for(var r=0;r<SIZE;r++){
+    board[r] = []; marks[r] = [];
+    for(var c=0;c<SIZE;c++){
+      if(r===2 && c===2){
+        board[r][c] = "FREE";
+        marks[r][c] = true; // auto-mark centre
+      } else {
+        board[r][c] = chosen[k++];
+        marks[r][c] = false;
+      }
+    }
+  }
+}
+
+function renderBoard(){
+  elBoard.innerHTML = '';
+  for(var r=0;r<SIZE;r++){
+    for(var c=0;c<SIZE;c++){
+      var div = document.createElement('div');
+      var classes = 'cell';
+      if(marks[r][c]) classes += ' marked';
+      if(board[r][c]==='FREE') classes += ' free';
+      div.className = classes;
+      div.id = cellId(r,c);
+      div.setAttribute('role','button');
+      div.setAttribute('aria-pressed', marks[r][c] ? 'true' : 'false');
+      div.setAttribute('tabindex','0');
+      div.textContent = board[r][c];
+      (function(rr,cc){
+        div.addEventListener('click', function(){ toggleCell(rr,cc); });
+        div.addEventListener('keypress', function(e){
+          e = e || window.event; var code = e.which || e.keyCode;
+          if(code===13 || code===32){ e.preventDefault(); toggleCell(rr,cc); }
+        });
+      })(r,c);
+      elBoard.appendChild(div);
+    }
+  }
+  updateStats();
+}
+
+function toggleCell(r,c){
+  if(board[r][c]==='FREE') return; // centre locked
+  marks[r][c] = !marks[r][c];
+  var el = document.getElementById(cellId(r,c));
+  if(el){
+    if(marks[r][c]){ el.classList.add('marked'); el.setAttribute('aria-pressed','true'); }
+    else{ el.classList.remove('marked'); el.setAttribute('aria-pressed','false'); }
+  }
+  checkBingos();
+  updateStats();
+}
+
+function updateStats(){
+  var count=0;
+  for(var r=0;r<SIZE;r++) for(var c=0;c<SIZE;c++) if(marks[r][c]) count++;
+  elMarked.textContent = count + '/25';
+}
+
+function checkBingos(){
+  var lines = 0, r,c;
+
+  // Rows
+  for(r=0;r<SIZE;r++){
+    var ok = true;
+    for(c=0;c<SIZE;c++) if(!marks[r][c]){ ok=false; break; }
+    if(ok) lines++;
+  }
+  // Cols
+  for(c=0;c<SIZE;c++){
+    var ok2 = true;
+    for(r=0;r<SIZE;r++) if(!marks[r][c]){ ok2=false; break; }
+    if(ok2) lines++;
+  }
+  // Diagonals
+  var ok3=true; for(r=0;r<SIZE;r++) if(!marks[r][r]) ok3=false;
+  if(ok3) lines++;
+  var ok4=true; for(r=0;r<SIZE;r++) if(!marks[r][SIZE-1-r]) ok4=false;
+  if(ok4) lines++;
+
+  if(lines !== bingos){
+    bingos = lines;
+    elBingos.textContent = bingos;
+    elBingos.classList.add('blink');
+    setTimeout(function(){ elBingos.classList.remove('blink'); }, 800);
+    if(bingos>0) setStatus('BINGO! You’ve got ' + bingos + (bingos===1?' line.':' lines.'));
+    else setStatus('Keep listening for jargon…');
+  }
+}
+
+// ===== Actions =====
+document.getElementById('newCard').addEventListener('click', function(){
+  generateCard(); renderBoard(); bingos = 0; elBingos.textContent = '0';
+  setStatus('New card dealt (' + (region==='uk'?'UK':'US') + ').');
+});
+document.getElementById('clearMarks').addEventListener('click', function(){
+  for(var r=0;r<SIZE;r++) for(var c=0;c<SIZE;c++) marks[r][c] = (r===2 && c===2); // keep FREE
+  renderBoard(); bingos=0; elBingos.textContent='0'; setStatus('Marks cleared.');
+});
+document.getElementById('copyList').addEventListener('click', function(){
+  var lines = [];
+  for(var r=0;r<SIZE;r++){
+    var row = [];
+    for(var c=0;c<SIZE;c++) row.push(board[r][c]);
+    lines.push(row.join(' | '));
+  }
+  var txt = 'Buzzword Bingo Card (' + (region==='uk'?'UK':'US') + ', centre is FREE)\n\n' + lines.join('\n');
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(txt).then(function(){ setStatus('Card copied to clipboard.'); })
+    .catch(function(){ setStatus('Clipboard blocked — select and copy manually.'); });
+  } else {
+    setStatus('Clipboard unsupported — select and copy manually.');
+  }
+});
+document.getElementById('printCard').addEventListener('click', function(){ window.print(); });
+document.getElementById('region').addEventListener('change', function(e){
+  region = e.target.value;
+  try{ localStorage.setItem('qbx_bingo_region', region); }catch(err){}
+  generateCard(); renderBoard(); bingos = 0; elBingos.textContent='0';
+  setStatus('Region set to ' + (region==='uk'?'UK 🇬🇧':'US 🇺🇸') + ' — new card dealt.');
+});
+
+// ===== Boot =====
+generateCard();
+renderBoard();
+setStatus('Ready. New card dealt (' + (region==='uk'?'UK':'US') + ').');
+</script>
+</body>
+</html>
