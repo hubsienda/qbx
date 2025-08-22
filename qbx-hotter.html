@@ -1,225 +1,95 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Hotter Right Now — QBX</title>
-<style>
-  body{margin:0;font-family:system-ui,Arial,sans-serif;background:#0b0b0c;color:#f5f5f6}
-  .wrap{max-width:980px;margin:0 auto;padding:22px}
-  h1{font-size:clamp(24px,5vw,40px);margin:0 0 6px}
-  .lead{color:#b6b6ba;margin:0 0 16px}
-  .panel{background:#141417;border:1px solid #232328;border-radius:16px;padding:16px;margin:14px 0}
-  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-  .card{background:#0f0f12;border:1px solid #2a2a30;border-radius:14px;padding:14px;min-height:120px}
-  .city{font-size:clamp(18px,3vw,22px);font-weight:800;margin-bottom:6px}
-  .meta{font-size:13px;color:#b6b6ba}
-  .btn{border-radius:12px;border:1px solid #2b2b31;background:#111113;color:#f5f5f6;padding:10px 12px;font-weight:700;cursor:pointer}
-  .btn:hover{filter:brightness(1.06)}
-  .primary{background:#8b5cf6;border-color:#8b5cf6}
-  .ghost{background:#17171b}
-  .ok{color:#22c55e;font-weight:700} .bad{color:#ef4444;font-weight:700}
-  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-  .small{font-size:13px;color:#b6b6ba}
-  details{margin-top:8px}
-  pre{background:#0f0f12;color:#f5f5f6;border:1px solid #2a2a30;border-radius:10px;padding:10px;white-space:pre-wrap;overflow:auto}
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hotter City Game</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      background: #fdfdfd;
+      padding: 40px;
+    }
+    h1 {
+      color: #ff007f;
+    }
+    .city {
+      display: inline-block;
+      margin: 20px;
+      padding: 20px;
+      font-size: 20px;
+      font-weight: bold;
+      background: #eee;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    .city:hover {
+      background: #ddd;
+    }
+    #result {
+      margin-top: 30px;
+      font-size: 18px;
+      font-weight: bold;
+      color: #333;
+    }
+  </style>
 </head>
 <body>
-<div class="wrap">
-  <h1>🔥 Hotter Right Now</h1>
-  <p class="lead">Two cities enter. You guess which one is hotter <em>right now</em>. The “AI” keeps score and gloats.</p>
 
-  <section class="panel">
-    <div class="row" style="justify-content:space-between">
-      <div class="row">
-        <button id="newPair" class="btn primary">🎲 New pair</button>
-        <button id="randomAgain" class="btn ghost">Another random</button>
-      </div>
-      <div class="row small">
-        <div><strong>Score</strong> <span id="score">0</span></div>
-        <div><strong>Streak</strong> <span id="streak">0</span></div>
-        <div><strong>Best</strong> <span id="best">0</span></div>
-        <button id="reset" class="btn ghost">Reset</button>
-      </div>
-    </div>
+  <h1>🔥 Hotter City</h1>
+  <p>Which city is hotter right now? Pick one!</p>
 
-    <div class="grid2" style="margin-top:10px">
-      <div class="card" id="leftCard">
-        <div class="city" id="leftName">—</div>
-        <div class="meta" id="leftMeta">Temp: —</div>
-        <button id="guessLeft" class="btn" style="margin-top:10px">Guess: Left is hotter</button>
-      </div>
-      <div class="card" id="rightCard">
-        <div class="city" id="rightName">—</div>
-        <div class="meta" id="rightMeta">Temp: —</div>
-        <button id="guessRight" class="btn" style="margin-top:10px">Guess: Right is hotter</button>
-      </div>
-    </div>
+  <div id="cities"></div>
+  <div id="result"></div>
 
-    <div id="status" class="small" style="margin-top:10px">Ready. Click “New pair”.</div>
-    <div id="result" style="margin-top:8px;font-size:16px"></div>
+  <script>
+    const API_KEY = "553b39e4a880493f8fe80855252108"; // your WeatherAPI key
+    const cities = ["Rome", "London", "Madrid", "Paris", "Berlin", "Tokyo", "New York", "Sydney", "Cairo", "Dubai"];
 
-    <details><summary class="small">Debug</summary>
-      <pre id="debug">—</pre>
-    </details>
-  </section>
-
-  <p class="small">Powered by <a href="https://www.weatherapi.com/" title="Weather API">WeatherAPI.com</a></p>
-</div>
-
-<script>
-// ===== Config =====
-var API_KEY = "553b39e4a880493f8fe80855252108"; // your WeatherAPI key
-var CITIES = [
-  "Rome, Italy","London, United Kingdom","Madrid, Spain","Paris, France","Berlin, Germany",
-  "Lisbon, Portugal","Dublin, Ireland","Oslo, Norway","Stockholm, Sweden","Helsinki, Finland",
-  "Vienna, Austria","Prague, Czechia","Budapest, Hungary","Warsaw, Poland","Athens, Greece",
-  "Istanbul, Türkiye","Moscow, Russia","Cairo, Egypt","Nairobi, Kenya","Johannesburg, South Africa",
-  "Dubai, UAE","Doha, Qatar","Jerusalem, Israel","Riyadh, Saudi Arabia","Tehran, Iran",
-  "Delhi, India","Bangkok, Thailand","Jakarta, Indonesia","Singapore","Tokyo, Japan",
-  "Seoul, South Korea","Beijing, China","Taipei, Taiwan","Sydney, Australia","Melbourne, Australia",
-  "Auckland, New Zealand","Wellington, New Zealand","New York, USA","Los Angeles, USA","Mexico City, Mexico",
-  "Bogotá, Colombia","Lima, Peru","Buenos Aires, Argentina","Santiago, Chile","Toronto, Canada",
-  "Vancouver, Canada","Montreal, Canada"
-];
-
-// ===== State =====
-var left = null, right = null;
-var temps = { left:null, right:null };
-var canGuess = false;
-var score=0, streak=0, best=0;
-
-// ===== DOM =====
-var leftName = document.getElementById('leftName');
-var rightName = document.getElementById('rightName');
-var leftMeta = document.getElementById('leftMeta');
-var rightMeta = document.getElementById('rightMeta');
-var resultEl = document.getElementById('result');
-var statusEl = document.getElementById('status');
-var debugEl = document.getElementById('debug');
-var scoreEl = document.getElementById('score');
-var streakEl = document.getElementById('streak');
-var bestEl = document.getElementById('best');
-
-function rInt(n){ return Math.floor(Math.random()*n); }
-function pickTwo(){
-  var i = rInt(CITIES.length), j = rInt(CITIES.length-1);
-  if(j >= i) j++;
-  return [CITIES[i], CITIES[j]];
-}
-
-// Robust XHR (ES5-safe) + 7s timeout + cache-buster
-function xhrGet(url, onDone){
-  var done = false;
-  var x = new XMLHttpRequest();
-  var timer = setTimeout(function(){ if(!done){ done=true; x.abort(); onDone(new Error('Timeout')); } }, 7000);
-  x.open('GET', url, true);
-  x.onreadystatechange = function(){
-    if (x.readyState === 4 && !done){
-      done = true; clearTimeout(timer);
-      onDone(null, x.status, x.responseText);
+    async function getTemperature(city) {
+      const res = await fetch(`https://api.weatherapi.com/v1/current.json?key=${API_KEY}&q=${city}&aqi=no`);
+      const data = await res.json();
+      return data.current.temp_c;
     }
-  };
-  x.onerror = function(e){ if(!done){ done=true; clearTimeout(timer); onDone(e||new Error('Network error')); } };
-  x.send();
-}
 
-function fetchTemp(q, cb){
-  var url = 'https://api.weatherapi.com/v1/current.json?key=' + encodeURIComponent(API_KEY)
-          + '&q=' + encodeURIComponent(q)
-          + '&aqi=no&_=' + Date.now();
-  xhrGet(url, function(err, status, body){
-    if(err) return cb(err);
-    if(String(status).charAt(0) !== '2') return cb(new Error('HTTP '+status+': '+body));
-    try {
-      var json = JSON.parse(body);
-      var t = json && json.current ? json.current.temp_c : null;
-      var cond = json && json.current && json.current.condition ? (json.current.condition.text + ' (' + json.current.condition.code + ')') : '—';
-      cb(null, { temp:t, cond:cond, raw:json });
-    } catch(e){
-      cb(e);
+    async function newRound() {
+      document.getElementById("result").textContent = "";
+      document.getElementById("cities").innerHTML = "Loading...";
+      
+      // Pick two random cities
+      const [city1, city2] = cities.sort(() => 0.5 - Math.random()).slice(0, 2);
+      
+      // Fetch their temperatures
+      const temp1 = await getTemperature(city1);
+      const temp2 = await getTemperature(city2);
+
+      // Display clickable choices (without showing temps yet)
+      const citiesDiv = document.getElementById("cities");
+      citiesDiv.innerHTML = `
+        <div class="city" onclick="makeGuess('${city1}', ${temp1}, '${city2}', ${temp2})">${city1}</div>
+        <div class="city" onclick="makeGuess('${city2}', ${temp2}, '${city1}', ${temp1})">${city2}</div>
+      `;
     }
-  });
-}
 
-function renderScore(){ scoreEl.textContent=score; streakEl.textContent=streak; bestEl.textContent=best; }
-function setStatus(msg){ statusEl.textContent = msg; }
-function setDebug(obj){ try{ debugEl.textContent = (typeof obj==='string') ? obj : JSON.stringify(obj,null,2); } catch(e){ debugEl.textContent = String(obj); } }
+    function makeGuess(chosenCity, chosenTemp, otherCity, otherTemp) {
+      let result = "";
+      if (chosenTemp > otherTemp) {
+        result = `✅ Correct! ${chosenCity} is hotter (${chosenTemp}°C vs ${otherCity} ${otherTemp}°C).`;
+      } else if (chosenTemp < otherTemp) {
+        result = `❌ Wrong! ${otherCity} is hotter (${otherCity} ${otherTemp}°C vs ${chosenCity} ${chosenTemp}°C).`;
+      } else {
+        result = `🤷 It's a tie! Both ${chosenCity} and ${otherCity} are ${chosenTemp}°C.`;
+      }
+      document.getElementById("result").textContent = result;
 
-function newPair(){
-  resultEl.textContent = '';
-  temps.left = temps.right = null;
-  canGuess = false;
+      // Start a new round after 3 seconds
+      setTimeout(newRound, 3000);
+    }
 
-  var pair = pickTwo();
-  left = pair[0]; right = pair[1];
-  leftName.textContent = left.split(',')[0];
-  rightName.textContent = right.split(',')[0];
-  leftMeta.textContent = 'Temp: fetching…';
-  rightMeta.textContent = 'Temp: fetching…';
-  setStatus('Fetching live temperatures…');
-  setDebug('…');
+    newRound();
+  </script>
 
-  fetchTemp(left, function(err1, L){
-    if(err1){ leftMeta.textContent = 'Temp: error'; setStatus('Left failed: ' + err1.message); setDebug(err1); return; }
-    temps.left = L.temp;
-    leftMeta.textContent = 'Temp: ' + L.temp + '°C • ' + L.cond;
-
-    fetchTemp(right, function(err2, R){
-      if(err2){ rightMeta.textContent = 'Temp: error'; setStatus('Right failed: ' + err2.message); setDebug(err2); return; }
-      temps.right = R.temp;
-      rightMeta.textContent = 'Temp: ' + R.temp + '°C • ' + R.cond;
-
-      canGuess = true;
-      setStatus('Place your guess.');
-      setDebug({left:left, L:L, right:right, R:R});
-    });
-  });
-}
-
-function onGuess(side){
-  if(!canGuess) return;
-  canGuess = false;
-
-  if(temps.left == null || temps.right == null){
-    resultEl.className='bad';
-    resultEl.textContent='No data. Try “New pair”.';
-    return;
-  }
-
-  var hotter = (temps.left > temps.right) ? 'left'
-             : (temps.right > temps.left) ? 'right'
-             : 'tie';
-
-  if(hotter === 'tie'){
-    resultEl.className='ok';
-    resultEl.textContent='It’s a draw at ' + temps.left + '°C. The AI sighs and allows a point.';
-    score++; streak++; if(streak>best) best=streak; renderScore();
-    return;
-  }
-
-  if(side === hotter){
-    resultEl.className='ok';
-    resultEl.textContent='✅ Correct! ' + (hotter==='left'?left:right).split(',')[0] + ' is hotter.';
-    score++; streak++; if(streak>best) best=streak;
-  } else {
-    resultEl.className='bad';
-    resultEl.textContent='❌ Wrong. ' + (hotter==='left'?left:right).split(',')[0] + ' is hotter.';
-    streak=0;
-  }
-  renderScore();
-}
-
-// Wire up
-document.getElementById('newPair').addEventListener('click', newPair);
-document.getElementById('randomAgain').addEventListener('click', newPair);
-document.getElementById('guessLeft').addEventListener('click', function(){ onGuess('left'); });
-document.getElementById('guessRight').addEventListener('click', function(){ onGuess('right'); });
-document.getElementById('reset').addEventListener('click', function(){ score=0; streak=0; best=0; renderScore(); resultEl.textContent=''; setStatus('Scores cleared.'); });
-
-// First render
-renderScore();
-</script>
 </body>
 </html>
