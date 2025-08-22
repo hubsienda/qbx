@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Combinatorial British Insult Machine</title>
+<style>
+  :root{--fg:#1b1b1b;--bg:#ffffff;--muted:#666;--ink:#111;--wa:#25D366;--blue:#0a66c2;}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--fg);font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
+  .wrap{max-width:780px;margin:0 auto;padding:24px}
+  h1{font-size:1.6rem;margin:0 0 .25rem}
+  p.sub{margin:.25rem 0 1rem;color:var(--muted)}
+  .card{border:1px solid #eee;border-radius:14px;padding:18px}
+  #output{font-size:1.25rem;line-height:1.55;font-weight:700;min-height:3.6em}
+  .hint{color:var(--muted);font-size:.92rem;margin-top:.25rem}
+  .btns{margin-top:10px;display:flex;flex-wrap:wrap;gap:8px}
+  button{border:0;border-radius:10px;padding:10px 14px;cursor:pointer;font-weight:700}
+  .primary{background:var(--ink);color:#fff}
+  .wa{background:var(--wa);color:#fff}
+  .copy{background:var(--blue);color:#fff}
+  .ghost{background:transparent;border:1px solid #ddd}
+  details{margin-top:14px}
+  summary{cursor:pointer;font-weight:700}
+  ol{margin:.5rem 0 0 1.2rem}
+  footer{margin-top:14px;color:var(--muted);font-size:.88rem}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🇬🇧 Combinatorial British Banter</h1>
+  <p class="sub">Invented insults & sharp replies. No repeats until the pool cycles. Carrd-friendly. WhatsApp-ready.</p>
+
+  <div class="card">
+    <div id="output">Tap “Generate” to dispense refined disrespect.</div>
+    <div class="hint" id="progressHint">0 generated this cycle</div>
+    <div class="btns">
+      <button class="primary" id="gen">Generate</button>
+      <button class="wa" id="wa">Send via WhatsApp</button>
+      <button class="copy" id="copy">Copy</button>
+      <button class="ghost" id="reset">Reset memory</button>
+      <button class="ghost" id="undo">Undo</button>
+    </div>
+
+    <details>
+      <summary>History (this session)</summary>
+      <ol id="history"></ol>
+    </details>
+
+    <footer>Privacy: everything runs on your device. Nothing is uploaded anywhere.</footer>
+  </div>
+</div>
+
+<script>
+/* ========= CORE IDEA =========
+   We generate lines from templates using:
+   - Adjectives (mild → spiky), intensifiers
+   - Nonce compound nouns via morphology mixer (prefix + base + suffix)
+   - Optional alliteration (same starting letter buckets)
+   - Clauses with UK context (tea, queueing, Greggs, drizzle)
+   - Safety: no slurs / protected-class targeting; keep it playful.
+   - Memory: no repeats in a cycle; persisted via localStorage.
+================================ */
+
+const KEY = "cmb_banter_state_v1";
+
+/* Weighted helper */
+const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+
+/* Wordbanks */
+const intensifiers = [
+  "absolutely","distinctly","alarmingly","spectacularly","mildly","heroically",
+  "unnecessarily","needlessly","ceremonially","tragically","famously","politely",
+  "ferociously","magnificently","questionably"
+];
+
+const tonalAdj = [
+  "bewildered","crumbling","soggy","flustered","peevish","jangly","unhinged",
+  "sleep-deprived","queue-worn","biscuity","lukewarm","wobbly","under-seasoned",
+  "terminally average","decoratively confused","permanently buffering"
+];
+
+const sharpAdj = [
+  "tinpot","budget","rickety","wonky","gaudy","piffling","half-baked","threadbare",
+  "ludicrous","pompous","dismal","grievous","farcical","catastrophic","ramshackle"
+];
+
+const poshAdj = [
+  "baronial","courtly","ceremonial","parliamentary","regal","majestic","lordly",
+  "decorous","ornamental","noble"
+];
+
+const ukisms = [
+  "by royal decree","as Her Majesty’s Wi-Fi permits","in broad daylight",
+  "before the kettle’s boiled","under light drizzle","by order of the queue",
+  "with two sugars","on the Jubilee line","in a gale of tutting","at the village fête",
+  "by St. Custard’s spoon","as tradition grudgingly dictates"
+];
+
+const verbs = [
+  "wobbles","malfunctions","self-congratulates","disappoints","falls over",
+  "leaks confidence","reboots itself","crumbles theatrically","misfires",
+  "tries its best and fails","queues politely for failure"
+];
+
+const rebuttals = [
+  "Do compose yourself; the maracas are optional.",
+  "Take a seat—preferably far away from the controls.",
+  "Pop the kettle on and let competence steep for once.",
+  "Have a biscuit and reconsider your life’s firmware.",
+  "Circle back when the plan has legs, not stilts.",
+  "Kindly downgrade your ambition to ‘plausible’.",
+  "Put it in a deck and never show the deck to anyone.",
+  "Try again after a brief course in reality."
+];
+
+/* Nonce-word engine parts */
+const prefixes = [
+  "crumpet","custard","marmite","teabag","scone","pigeon","turnip","cabbage",
+  "puddling","kipper","gingham","umbrella","beige","pasty","trifle","gravy","toffee"
+];
+
+const bases_animals = [
+  "badger","weasel","ferret","wombat","barnacle","goblin","otter","heron","mole",
+  "stoat","lemming","peacock","newt","puffin","gnat","walrus","seagull"
+];
+
+const bases_objects = [
+  "bucket","kettle","doormat","lampshade","paperclip","briefcase","doorstop",
+  "wheelie-bin","stapler","shoebox","lunchbox","tupperware","laundry-basket"
+];
+
+const suffixes = [
+  "gargoyle","hobgoblin","wobble","muppet","mancer","pocalypse","botherer",
+  "gremlin","twizzler","weevil","hurricane","opera","catastrophe","fandango"
+];
+
+/* Alliterative letter set (optionally force first letters to match) */
+const letters = "bcdfghjklmnpqrstvwxyz".split("");
+
+/* Clauses */
+const clauses = [
+  "with the strategic foresight of {a} {adj} traffic-cone",
+  "powered solely by lukewarm tea and vibes",
+  "like {a} {adj} spreadsheet left in the rain",
+  "with the stability of {a} {adj} custard-scaffold",
+  "guided by a satnav that only knows cul-de-sacs",
+  "audited by pigeons and rubber stamps",
+  "approved by a committee of yawns",
+  "balancing on hopes, dreams, and a paperclip"
+];
+
+/* Utility: article a/an */
+function articleize(word){
+  const w = (""+word).trim();
+  return (/^[aeiou]/i.test(w) ? "an " : "a ") + w;
+}
+
+/* Utility: capitalise first letter properly */
+function cap(s){ return s.charAt(0).toUpperCase() + s.slice(1); }
+
+/* Nonce compound creator.
+   Modes:
+   - simple hyphen: prefix + base
+   - triplet: prefix + base + suffix
+   - double-barrelled: X-fondling Y-goblin, etc.
+   Optional alliteration by picking a shared starting letter.
+*/
+function nonceCompound(opts={}){
+  const allit = Math.random() < 0.35; // 35% of the time
+  const letter = allit ? pick(letters) : null;
+
+  function pickStarting(list){
+    if(!letter) return pick(list);
+    const filtered = list.filter(w => w.startsWith(letter));
+    return filtered.length ? pick(filtered) : pick(list);
+  }
+
+  const pre = pickStarting(prefixes);
+  const base = Math.random()<0.5 ? pickStarting(bases_animals) : pickStarting(bases_objects);
+  const suf  = pick(suffixes);
+
+  const mode = Math.random();
+  if(mode < 0.34){
+    return `${pre}-${base}`;
+  }else if(mode < 0.68){
+    return `${pre}-${base}-${suf}`;
+  }else{
+    const pre2 = pickStarting(prefixes);
+    const suf2 = pick(suffixes);
+    return `${pre}-fondling ${pre2}-${suf2}`;
+  }
+}
+
+/* Build an insult using templates */
+function makeInsult(){
+  // Choose a template shape
+  const form = Math.random();
+  const adj1 = pick(sharpAdj);
+  const adj2 = pick(tonalAdj);
+  const tone = pick(intensifiers);
+  const posh = pick(poshAdj);
+  const comp = nonceCompound();
+  const clause = pick(clauses).replace("{a}", "a").replace("{adj}", pick(tonalAdj));
+  const uk = pick(ukisms);
+  const v = pick(verbs);
+  const rb = pick(rebuttals);
+
+  // fix articles for injected bits
+  const aAdj1 = articleize(adj1);
+  const aAdj2 = articleize(adj2);
+  const aComp = articleize(comp);
+
+  let line = "";
+  if(form < 0.25){
+    line = `You ${tone} ${adj1} ${comp}, ${clause}. ${rb}`;
+  }else if(form < 0.5){
+    line = `That ${v} like ${aAdj2} ${nonceCompound()} ${uk}. ${rb}`;
+  }else if(form < 0.75){
+    line = `Be ${tone} serious—you ${posh} disaster in ${aAdj1} packaging. ${cap(clause)}.`;
+  }else{
+    line = `Kindly retire this plan, you ${nonceCompound()} with ${aAdj2} aura; ${clause}, ${uk}.`;
+  }
+
+  // Quick tidy: “a a” from placeholders etc.
+  line = line
+    .replace(/\ba a ([aeiou])/gi, "an $1")
+    .replace(/\ban ([^aeiou])/gi, "a $1")
+    .replace(/\s{2,}/g, " ");
+
+  // Ensure capital and trailing punctuation
+  if(!/[.!?…]$/.test(line)) line += ".";
+  return cap(line.trim());
+}
+
+/* ===== Memory (no repeats until cycle ends) ===== */
+function loadState(){
+  try{
+    const raw = localStorage.getItem(KEY);
+    if(!raw) return freshState();
+    const s = JSON.parse(raw);
+    if(!s || !Array.isArray(s.pool) || typeof s.idx!=="number") return freshState();
+    return s;
+  }catch(e){ return freshState(); }
+}
+
+function freshState(){
+  // Prebuild a cycle of unique lines (large but finite) by hashing outputs.
+  // We don’t precompute everything (would be huge); instead, we build on demand
+  // and store hashes to avoid immediate repeats across the cycle length.
+  return { pool: [], idx: 0, seen: {}, cycle: 2000 }; // 2000 unique lines per cycle
+}
+
+function saveState(s){ localStorage.setItem(KEY, JSON.stringify(s)); }
+
+function hash(s){
+  let h = 0;
+  for(let i=0;i<s.length;i++){ h = (h*31 + s.charCodeAt(i))|0; }
+  return String(h);
+}
+
+function nextLine(){
+  let s = state;
+  // If cycle exhausted, reset seen and start again
+  if(s.idx >= s.cycle){
+    s.pool = [];
+    s.idx = 0;
+    s.seen = {};
+  }
+  // Generate until unique in this cycle
+  let tries = 0, out="";
+  do{
+    out = makeInsult();
+    tries++;
+    if(tries > 500){ break; } // safety valve
+  } while (s.seen[hash(out)]);
+  s.seen[hash(out)] = true;
+  s.pool.push(out);
+  s.idx++;
+  saveState(s);
+  return out;
+}
+
+function prevLine(){
+  if(state.idx <= 1) return null;
+  state.idx -= 1;
+  const line = state.pool[state.idx - 1];
+  saveState(state);
+  return line || null;
+}
+
+/* ===== UI Wiring ===== */
+const elOut = document.getElementById("output");
+const elProg = document.getElementById("progressHint");
+const elHist = document.getElementById("history");
+const sessionHistory = [];
+
+function setOutput(text){
+  elOut.textContent = text;
+  sessionHistory.push(text);
+  const li = document.createElement("li");
+  li.textContent = text;
+  elHist.appendChild(li);
+  updateProgress();
+}
+function updateProgress(){
+  elProg.textContent = `${state.idx} generated this cycle (of ${state.cycle})`;
+}
+
+let state = loadState();
+updateProgress();
+
+document.getElementById("gen").addEventListener("click", ()=>{
+  setOutput(nextLine());
+});
+
+document.getElementById("wa").addEventListener("click", ()=>{
+  const text = (elOut.textContent.trim() || nextLine());
+  const url = "https://wa.me/?text=" + encodeURIComponent(text);
+  window.open(url, "_blank", "noopener");
+});
+
+document.getElementById("copy").addEventListener("click", async ()=>{
+  const text = (elOut.textContent.trim() || nextLine());
+  try{
+    await navigator.clipboard.writeText(text);
+    alert("Copied to clipboard.");
+  }catch(e){
+    prompt("Copy manually:", text);
+  }
+});
+
+document.getElementById("reset").addEventListener("click", ()=>{
+  if(confirm("Reset memory and start a fresh cycle?")){
+    localStorage.removeItem(KEY);
+    state = freshState();
+    elOut.textContent = "Memory cleared. Tap Generate for newly minted rudeness.";
+    elHist.innerHTML = "";
+    sessionHistory.length = 0;
+    updateProgress();
+  }
+});
+
+document.getElementById("undo").addEventListener("click", ()=>{
+  if(sessionHistory.length > 0){ sessionHistory.pop(); elHist.lastChild?.remove(); }
+  const t = prevLine();
+  if(t) elOut.textContent = t;
+});
+</script>
+</body>
+</html>
