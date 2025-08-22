@@ -34,11 +34,11 @@
     <div id="output">Tap “Generate” to dispense refined disrespect.</div>
     <div class="hint" id="progressHint">0 generated this cycle</div>
     <div class="btns">
-      <button class="primary" id="gen">Generate</button>
-      <button class="wa" id="wa">Send via WhatsApp</button>
-      <button class="copy" id="copy">Copy</button>
-      <button class="ghost" id="reset">Reset memory</button>
-      <button class="ghost" id="undo">Undo</button>
+      <button type="button" class="primary" id="gen">Generate</button>
+      <button type="button" class="wa" id="wa">Send via WhatsApp</button>
+      <button type="button" class="copy" id="copy">Copy</button>
+      <button type="button" class="ghost" id="reset">Reset memory</button>
+      <button type="button" class="ghost" id="undo">Undo</button>
     </div>
 
     <details>
@@ -134,7 +134,7 @@ const suffixes = [
   "gremlin","twizzler","weevil","hurricane","opera","catastrophe","fandango"
 ];
 
-/* Alliterative letter set (optionally force first letters to match) */
+/* Alliterative letter set */
 const letters = "bcdfghjklmnpqrstvwxyz".split("");
 
 /* Clauses */
@@ -149,24 +149,16 @@ const clauses = [
   "balancing on hopes, dreams, and a paperclip"
 ];
 
-/* Utility: article a/an */
+/* Utility functions */
 function articleize(word){
   const w = (""+word).trim();
   return (/^[aeiou]/i.test(w) ? "an " : "a ") + w;
 }
-
-/* Utility: capitalise first letter properly */
 function cap(s){ return s.charAt(0).toUpperCase() + s.slice(1); }
 
-/* Nonce compound creator.
-   Modes:
-   - simple hyphen: prefix + base
-   - triplet: prefix + base + suffix
-   - double-barrelled: X-fondling Y-goblin, etc.
-   Optional alliteration by picking a shared starting letter.
-*/
+/* Nonce compound creator */
 function nonceCompound(opts={}){
-  const allit = Math.random() < 0.35; // 35% of the time
+  const allit = Math.random() < 0.35;
   const letter = allit ? pick(letters) : null;
 
   function pickStarting(list){
@@ -191,9 +183,8 @@ function nonceCompound(opts={}){
   }
 }
 
-/* Build an insult using templates */
+/* Build an insult */
 function makeInsult(){
-  // Choose a template shape
   const form = Math.random();
   const adj1 = pick(sharpAdj);
   const adj2 = pick(tonalAdj);
@@ -205,10 +196,8 @@ function makeInsult(){
   const v = pick(verbs);
   const rb = pick(rebuttals);
 
-  // fix articles for injected bits
   const aAdj1 = articleize(adj1);
   const aAdj2 = articleize(adj2);
-  const aComp = articleize(comp);
 
   let line = "";
   if(form < 0.25){
@@ -221,18 +210,16 @@ function makeInsult(){
     line = `Kindly retire this plan, you ${nonceCompound()} with ${aAdj2} aura; ${clause}, ${uk}.`;
   }
 
-  // Quick tidy: “a a” from placeholders etc.
   line = line
     .replace(/\ba a ([aeiou])/gi, "an $1")
     .replace(/\ban ([^aeiou])/gi, "a $1")
     .replace(/\s{2,}/g, " ");
 
-  // Ensure capital and trailing punctuation
   if(!/[.!?…]$/.test(line)) line += ".";
   return cap(line.trim());
 }
 
-/* ===== Memory (no repeats until cycle ends) ===== */
+/* ===== Memory ===== */
 function loadState(){
   try{
     const raw = localStorage.getItem(KEY);
@@ -242,36 +229,18 @@ function loadState(){
     return s;
   }catch(e){ return freshState(); }
 }
-
-function freshState(){
-  // Prebuild a cycle of unique lines (large but finite) by hashing outputs.
-  // We don’t precompute everything (would be huge); instead, we build on demand
-  // and store hashes to avoid immediate repeats across the cycle length.
-  return { pool: [], idx: 0, seen: {}, cycle: 2000 }; // 2000 unique lines per cycle
-}
-
+function freshState(){ return { pool: [], idx: 0, seen: {}, cycle: 2000 }; }
 function saveState(s){ localStorage.setItem(KEY, JSON.stringify(s)); }
-
-function hash(s){
-  let h = 0;
-  for(let i=0;i<s.length;i++){ h = (h*31 + s.charCodeAt(i))|0; }
-  return String(h);
-}
+function hash(s){ let h=0; for(let i=0;i<s.length;i++){ h=(h*31+s.charCodeAt(i))|0; } return String(h); }
 
 function nextLine(){
   let s = state;
-  // If cycle exhausted, reset seen and start again
-  if(s.idx >= s.cycle){
-    s.pool = [];
-    s.idx = 0;
-    s.seen = {};
-  }
-  // Generate until unique in this cycle
-  let tries = 0, out="";
+  if(s.idx >= s.cycle){ s.pool=[]; s.idx=0; s.seen={}; }
+  let tries=0,out="";
   do{
     out = makeInsult();
     tries++;
-    if(tries > 500){ break; } // safety valve
+    if(tries > 500){ break; }
   } while (s.seen[hash(out)]);
   s.seen[hash(out)] = true;
   s.pool.push(out);
@@ -279,7 +248,6 @@ function nextLine(){
   saveState(s);
   return out;
 }
-
 function prevLine(){
   if(state.idx <= 1) return null;
   state.idx -= 1;
@@ -288,7 +256,7 @@ function prevLine(){
   return line || null;
 }
 
-/* ===== UI Wiring ===== */
+/* ===== UI ===== */
 const elOut = document.getElementById("output");
 const elProg = document.getElementById("progressHint");
 const elHist = document.getElementById("history");
@@ -302,33 +270,22 @@ function setOutput(text){
   elHist.appendChild(li);
   updateProgress();
 }
-function updateProgress(){
-  elProg.textContent = `${state.idx} generated this cycle (of ${state.cycle})`;
-}
+function updateProgress(){ elProg.textContent = `${state.idx} generated this cycle (of ${state.cycle})`; }
 
 let state = loadState();
 updateProgress();
 
-document.getElementById("gen").addEventListener("click", ()=>{
-  setOutput(nextLine());
-});
-
+document.getElementById("gen").addEventListener("click", ()=> setOutput(nextLine()));
 document.getElementById("wa").addEventListener("click", ()=>{
   const text = (elOut.textContent.trim() || nextLine());
   const url = "https://wa.me/?text=" + encodeURIComponent(text);
   window.open(url, "_blank", "noopener");
 });
-
 document.getElementById("copy").addEventListener("click", async ()=>{
   const text = (elOut.textContent.trim() || nextLine());
-  try{
-    await navigator.clipboard.writeText(text);
-    alert("Copied to clipboard.");
-  }catch(e){
-    prompt("Copy manually:", text);
-  }
+  try{ await navigator.clipboard.writeText(text); alert("Copied to clipboard."); }
+  catch(e){ prompt("Copy manually:", text); }
 });
-
 document.getElementById("reset").addEventListener("click", ()=>{
   if(confirm("Reset memory and start a fresh cycle?")){
     localStorage.removeItem(KEY);
@@ -339,7 +296,6 @@ document.getElementById("reset").addEventListener("click", ()=>{
     updateProgress();
   }
 });
-
 document.getElementById("undo").addEventListener("click", ()=>{
   if(sessionHistory.length > 0){ sessionHistory.pop(); elHist.lastChild?.remove(); }
   const t = prevLine();
