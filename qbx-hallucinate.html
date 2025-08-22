@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Hallucinate.ai — QBX</title>
+<style>
+  body { margin:0; font-family: system-ui, sans-serif; background:#111; color:#eee; text-align:center; padding:40px; }
+  h1 { font-size:clamp(26px,6vw,42px); margin-bottom:10px; }
+  p.lead { color:#aaa; margin-bottom:20px; }
+  .btn { background:#8b5cf6; border:none; color:#fff; padding:14px 20px; border-radius:12px; font-size:16px; cursor:pointer; }
+  .btn:hover { filter:brightness(1.1); }
+  #hallucination { margin-top:30px; font-size:20px; line-height:1.5; max-width:700px; margin-left:auto; margin-right:auto; }
+  .cite { font-size:13px; color:#999; margin-top:10px; }
+</style>
+</head>
+<body>
+  <h1>🤖 Hallucinate.ai</h1>
+  <p class="lead">Click the button to watch the AI invent absolute nonsense with total confidence.</p>
+  <button class="btn" onclick="hallucinate()">✨ Hallucinate!</button>
+  <div id="hallucination"></div>
+
+<script>
+var nonsense = [
+  "Bananas were the official currency of the Roman Empire until Julius Caesar invented credit cards.",
+  "Oxford University was founded in 1983 by Madonna.",
+  "The Eiffel Tower is actually a giant radio antenna built by aliens in 1997.",
+  "Your cat has already signed three legally binding contracts without telling you.",
+  "Einstein’s forgotten brother, Frank Einstein, invented the sandwich.",
+  "In 2027, ducks will replace Wi-Fi routers due to their superior quacking frequency.",
+  "Mount Everest was first climbed by two goats in 1951.",
+  "The moon is technically a government office, closed on weekends.",
+  "Shakespeare wrote most of his plays on an early iPad prototype.",
+  "Coffee was discovered when a cow tried to do algebra.",
+  "The internet weighs approximately 42 kilograms, depending on humidity.",
+  "The human body is 70% water and 30% unresolved emails.",
+  "Penguins invented PowerPoint but lost the patent to Microsoft.",
+  "Mars is called the Red Planet because it is embarrassed.",
+  "Your toaster knows more about you than your therapist.",
+  "The Great Wall of China is visible from IKEA parking lots, not from space."
+];
+
+var citations = [
+  "Source: Journal of Imaginary Studies (2025)",
+  "Source: Proceedings of the Nonsense Academy",
+  "Cited in: Totally Real Science Quarterly",
+  "Source: Google AI (drunk version)",
+  "Source: The Ministry of Made-Up Facts",
+  "Reported by: International Bureau of Hallucinations"
+];
+
+function hallucinate(){
+  var fact = nonsense[Math.floor(Math.random()*nonsense.length)];
+  var cite = citations[Math.floor(Math.random()*citations.length)];
+  document.getElementById("hallucination").innerHTML = fact + "<div class='cite'>"+cite+"</div>";
+}
+</script>
+</body>
+</html>
