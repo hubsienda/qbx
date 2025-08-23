@@ -25,6 +25,33 @@
   .ok{color:var(--ok);font-weight:700}
   .bad{color:var(--bad);font-weight:700}
   .small{font-size:13px;color:var(--muted)}
+
+.choice {
+  display:block;
+  width:100%;
+  text-align:left;
+  background:#111113;
+  border:1px solid #2b2b31;
+  border-radius:12px;
+  padding:12px 14px;
+  cursor:pointer;
+  color:#f5f5f6;        /* ✅ force light text */
+  font-weight:600;
+}
+
+.choice.correct {
+  border-color:#1f3d26;
+  box-shadow:inset 0 0 0 2px var(--ok);
+  color:#f5f5f6;        /* keep text readable */
+}
+
+.choice.wrong {
+  border-color:#3d1f1f;
+  box-shadow:inset 0 0 0 2px var(--bad);
+  color:#f5f5f6;        /* keep text readable */
+}
+
+  
 </style>
 </head>
 <body>
