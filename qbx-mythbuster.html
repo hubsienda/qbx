@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>AI Myth-Buster Quiz — QBX</title>
+<style>
+  :root{--bg:#0b0b0c;--ink:#f5f5f6;--muted:#b6b6ba;--card:#141417;--br:#232328;--accent:#8b5cf6;--ok:#22c55e;--bad:#ef4444;}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 system-ui,-apple-system,Segoe UI,Inter,Roboto,Arial,sans-serif}
+  .wrap{max-width:880px;margin:0 auto;padding:24px}
+  h1{font-size:clamp(24px,5vw,40px);margin:0 0 6px}
+  .lead{color:var(--muted);margin:0 0 16px}
+  .panel{background:var(--card);border:1px solid var(--br);border-radius:16px;padding:16px;margin:14px 0}
+  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  .progress{height:10px;background:#1c1c22;border-radius:999px;overflow:hidden}
+  .bar{height:100%;width:0;background:var(--accent)}
+  .btn{cursor:pointer;border-radius:12px;border:1px solid #2b2b31;background:#111113;color:var(--ink);padding:12px 16px;font-weight:700}
+  .btn:hover{filter:brightness(1.06)}
+  .primary{background:var(--accent);border-color:var(--accent)}
+  .choice{display:block;width:100%;text-align:left;background:#111113;border:1px solid #2b2b31;border-radius:12px;padding:12px 14px;cursor:pointer}
+  .choice.correct{border-color:#1f3d26;box-shadow:inset 0 0 0 2px var(--ok)}
+  .choice.wrong{border-color:#3d1f1f;box-shadow:inset 0 0 0 2px var(--bad)}
+  .explain{margin-top:10px;color:var(--muted)}
+  .ok{color:var(--ok);font-weight:700}
+  .bad{color:var(--bad);font-weight:700}
+  .small{font-size:13px;color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>AI Myth-Buster</h1>
+  <p class="lead">Fun, fast, mildly sarcastic. Bust myths; learn things. British spelling included.</p>
+
+  <section class="panel">
+    <div class="row" style="justify-content:space-between;align-items:center">
+      <div class="small"><strong>Q:</strong> <span id="qnum">0</span>/10 • <strong>Score:</strong> <span id="score">0</span></div>
+      <div class="progress" style="flex:1;max-width:400px"><div id="bar" class="bar"></div></div>
+    </div>
+
+    <div id="card" style="margin-top:12px">
+      <div id="statement" style="font-size:18px;font-weight:700;line-height:1.4">Press “Start” to begin.</div>
+      <div id="choices" style="margin-top:12px;display:grid;grid-template-columns:1fr 1fr;gap:10px"></div>
+      <div id="feedback" class="explain"></div>
+      <div class="row" style="margin-top:12px">
+        <button id="startBtn" class="btn primary">▶ Start</button>
+        <button id="nextBtn" class="btn" style="display:none">Next ▶</button>
+        <span id="status" class="small" style="margin-left:auto">Ready.</span>
+      </div>
+    </div>
+  </section>
+
+  <p class="small">This is a guide, not legal advice. Also, please don’t ask AI to make you rich — that’s for grifters.</p>
+</div>
+
+<script>
+// ===== Pool (True = fact, False = myth). Short explainers keep it snappy.
+var POOL = [
+  { s:"AI is sentient.", a:false, e:"Nope. It predicts patterns; no feelings, no inner life." },
+  { s:"AI understands meaning exactly like humans.", a:false, e:"It models correlations, not grounded human understanding." },
+  { s:"AI can read my mind.", a:false, e:"It only sees your prompt (plus any data/tools you give it)." },
+  { s:"AI is always right.", a:false, e:"Fluent ≠ true. It can hallucinate confidently." },
+  { s:"Bigger models are automatically more truthful.", a:false, e:"Often more fluent; truth needs context, data and checks." },
+  { s:"AI will steal everyone’s jobs permanently.", a:false, e:"Tech shifts change tasks; society must fund re-skilling." },
+  { s:"Only low-skill roles are at risk from AI.", a:false, e:"It reshapes both routine and white-collar tasks." },
+  { s:"We should ban AI because it’s dangerous.", a:false, e:"Regulate and govern it sensibly; don’t ban electricity 2.0." },
+  { s:"AI is neutral and objective by default.", a:false, e:"Models learn biases from data. Test and mitigate." },
+  { s:"If the model cites a source, it must be true.", a:false, e:"It can fabricate or misread citations. Verify links." },
+  { s:"Models know everything in real time.", a:false, e:"Most have cut-offs and no live internet unless enabled." },
+  { s:"AI art is theft, full stop.", a:false, e:"It learns patterns; the law is evolving. Respect licences." },
+  { s:"AI outputs are automatically owned by me.", a:false, e:"Depends on law and provider terms. Keep human authorship." },
+  { s:"Prompt engineering is everything.", a:false, e:"Prompts help, but data, tools and retrieval matter more." },
+  { s:"Fine-tuning will inject fresh facts.", a:false, e:"Use RAG for freshness; fine-tune for tone/behaviour." },
+  { s:"Agents can run my company end-to-end today.", a:false, e:"Great at narrow flows; brittle on edge cases." },
+  { s:"Deepfakes are perfect and unstoppable.", a:false, e:"Detection and provenance are improving. Verify sources." },
+  { s:"AI is either green or planet-evil.", a:false, e:"Costs exist, but AI also optimises emissions when used well." },
+  { s:"Using AI at school is always cheating.", a:false, e:"Misuse is cheating; guided use improves drafts & access." },
+  { s:"The model handles security.", a:false, e:"It’s an attack surface. Add guardrails, filters, audits." },
+  { s:"Higher temperature means better creativity automatically.", a:false, e:"It means more randomness, not quality." },
+  { s:"Open-source AI is unsafe; closed is safe.", a:false, e:"Safety depends on deployment and governance, not licence." },
+  { s:"You need a GPU farm to do anything useful.", a:false, e:"Small models/APIs handle loads of tasks just fine." },
+  { s:"The right ‘secret prompt’ will make me rich.", a:false, e:"No secret prompt. Value = real problems, data, users." },
+  { s:"Follow this guru for AI passive income.", a:false, e:"If it worked, they’d do it quietly. Demand evidence." },
+  { s:"AI will replace all doctors/lawyers/teachers.", a:false, e:"Copilot, not captain. Humans stay accountable." },
+  { s:"If it looks original, it’s safe to use.", a:false, e:"Still check for PII/copyright. Add filters & review." },
+  { s:"Hallucinations mean AI is useless.", a:false, e:"Mitigate with retrieval, guardrails and evaluation." },
+  { s:"Upload all company data into any chatbot.", a:false, e:"Risky. Use enterprise settings, DLP, clear policies." },
+  { s:"AI is just maths and stats (no magic).", a:true,  e:"Correct. It’s pattern prediction at scale." }
+];
+
+function shuffle(a){ for(var i=a.length-1;i>0;i--){ var j=Math.floor(Math.random()*(i+1)); var t=a[i]; a[i]=a[j]; a[j]=t; } return a; }
+
+var QUIZ = shuffle(POOL.slice()).slice(0,10);
+var idx = 0, score = 0, answered = false;
+
+var qnum = document.getElementById('qnum');
+var scoreEl = document.getElementById('score');
+var bar = document.getElementById('bar');
+var statement = document.getElementById('statement');
+var choices = document.getElementById('choices');
+var feedback = document.getElementById('feedback');
+var startBtn = document.getElementById('startBtn');
+var nextBtn = document.getElementById('nextBtn');
+var statusEl = document.getElementById('status');
+
+function setStatus(m){ statusEl.textContent = m; }
+function renderProgress(){ qnum.textContent = Math.min(idx+1,10); bar.style.width = ((idx)/10*100)+'%'; }
+function endTitle(n){
+  if(n>=9) return "🏆 Certified AI Myth Destroyer";
+  if(n>=7) return "🎓 AI Myth Buster (Intermediate)";
+  if(n>=4) return "🤔 AI Fence-Sitter";
+  return "📺 Reads Too Many Sci-Fi Headlines";
+}
+
+function renderQuestion(){
+  var q = QUIZ[idx];
+  statement.textContent = q.s;
+  choices.innerHTML = "";
+  feedback.textContent = "";
+  answered = false;
+  var btnT = document.createElement('button'); btnT.className='choice'; btnT.textContent='True';
+  var btnF = document.createElement('button'); btnF.className='choice'; btnF.textContent='Myth';
+  btnT.onclick=function(){ onAnswer(true, btnT, btnF); };
+  btnF.onclick=function(){ onAnswer(false, btnT, btnF); };
+  choices.appendChild(btnT); choices.appendChild(btnF);
+  nextBtn.style.display = 'none';
+  setStatus("Pick an answer. Explanations reveal after.");
+}
+
+function onAnswer(ans, bT, bF){
+  if(answered) return;
+  answered = true;
+  var q = QUIZ[idx];
+  var correct = (ans === q.a);
+  if(correct) score++;
+  scoreEl.textContent = score;
+
+  // decorate
+  if(q.a===true){ bT.classList.add('correct'); bF.classList.add('wrong'); }
+  else{ bF.classList.add('correct'); bT.classList.add('wrong'); }
+
+  feedback.innerHTML = (correct ? "<span class='ok'>Correct.</span> " : "<span class='bad'>Not quite.</span> ") + q.e;
+  nextBtn.style.display = 'inline-block';
+  setStatus("Click Next.");
+}
+
+function next(){
+  idx++;
+  renderProgress();
+  if(idx>=10){
+    // End screen
+    statement.textContent = endTitle(score);
+    choices.innerHTML = "";
+    feedback.innerHTML = "Score: <strong>"+score+"/10</strong>. "
+      + (score>=9 ? "You wield sarcasm and science with equal grace." :
+         score>=7 ? "Solid grasp. Keep busting nonsense." :
+         score>=4 ? "Getting there. Less YouTube gurus, more sources." :
+                    "Start here: ‘Fluent ≠ true’. Then try again.");
+    nextBtn.style.display='none';
+    startBtn.textContent='Play again'; startBtn.style.display='inline-block';
+    setStatus("Quiz complete.");
+  }else{
+    renderQuestion();
+  }
+}
+
+startBtn.onclick=function(){
+  // reset
+  QUIZ = shuffle(POOL.slice()).slice(0,10);
+  idx=0; score=0; scoreEl.textContent=score; renderProgress();
+  startBtn.style.display='none';
+  nextBtn.style.display='none';
+  renderQuestion();
+};
+nextBtn.onclick=next;
+
+</script>
+</body>
+</html>
