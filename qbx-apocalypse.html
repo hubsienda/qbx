@@ -4,11 +4,11 @@
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Apocalypse Generator — QBX Labs</title>
-<meta name="description" content="Click to generate a brand-new apocalypse with British humour. PG mode by default. Share a permalink and make your mates panic (lightly).">
+<meta name="description" content="Click to generate a brand-new apocalypse with British humour. PG mode by default. Share a permalink with mates.">
 <style>
   :root{
     --bg:#0b0b0c; --ink:#f5f5f6; --muted:#b6b6ba; --card:#141417; --br:#232328;
-    --btn:#111113; --btnh:#1c1c20; --accent:#8b5cf6; --ok:#22c55e;
+    --btn:#111113; --accent:#8b5cf6; --ok:#22c55e;
   }
   *{box-sizing:border-box}
   body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 system-ui,-apple-system,Segoe UI,Inter,Roboto,Arial,sans-serif}
@@ -39,7 +39,7 @@
         <button id="gen" class="primary">✨ Generate</button>
         <button id="copy">📋 Copy</button>
         <button id="tweet">🐦 Tweet</button>
-        <button id="slack">💬 Open Slack</button>
+        <button id="whatsapp">🟢 WhatsApp</button>
         <button id="link">🔗 Copy share link</button>
       </div>
       <label class="small"><input id="pg" type="checkbox" checked> PG mode</label>
@@ -56,130 +56,24 @@
 <script>
 // ===== Utilities (ES5) =====
 function pick(a, rng){ return a[Math.floor(rng()*a.length)]; }
-
-// Simple seeded RNG (LCG) for deterministic shares
-function makeRNG(seed){
-  var m=0x80000000, a=1103515245, c=12345;
-  var state = (seed>>>0) || Math.floor(Date.now()%m);
-  return function(){ state=(a*state+c)%m; return state/m; };
-}
-function parseHash(){
-  // #s=12345&pg=1
-  var h = (location.hash||'').replace(/^#/, '');
-  var obj = {};
-  if(!h) return obj;
-  var parts = h.split('&');
-  for(var i=0;i<parts.length;i++){
-    var kv = parts[i].split('=');
-    obj[decodeURIComponent(kv[0])] = decodeURIComponent(kv[1]||'');
-  }
-  return obj;
-}
+function makeRNG(seed){ var m=0x80000000,a=1103515245,c=12345,s=(seed>>>0)||Math.floor(Date.now()%m); return function(){ s=(a*s+c)%m; return s/m; }; }
+function parseHash(){ var h=(location.hash||'').replace(/^#/,''); var o={}; if(!h) return o; var p=h.split('&'); for(var i=0;i<p.length;i++){ var kv=p[i].split('='); o[decodeURIComponent(kv[0])]=decodeURIComponent(kv[1]||''); } return o; }
 function setStatus(s){ document.getElementById('status').textContent = s; }
 
-// ===== Content banks (PG by default; “spicy” stays safe & non-graphic) =====
+// ===== Content banks =====
 var BANK = {
-  when: [
-    "next Tuesday, right after lunch",
-    "the moment someone says “it’s just a quick meeting”",
-    "precisely at tea time",
-    "as Mercury retrogrades for dramatic effect",
-    "the instant a group chat hits 100 unread messages",
-    "when the Wi-Fi flickers thrice",
-    "at 03:07, because the apocalypse keeps odd hours",
-    "during the annual office fire drill that nobody takes seriously"
-  ],
-  type_pg: [
-    "a perfectly polite minor apocalypse",
-    "a bureaucracy-induced meltdown",
-    "a global calendar sync failure",
-    "a spontaneous mass nap",
-    "a civilisation-wide kettle shortage",
-    "an outbreak of unstoppable small talk",
-    "a planet-scale spreadsheet crash",
-    "a universal ‘Reply-All’ incident"
-  ],
-  type_spicy: [
-    "a mildly chaotic vending-machine uprising",
-    "a paperwork avalanche of biblical admin",
-    "a dignified stampede towards the biscuit aisle",
-    "a dramatic shortage of functioning chargers",
-    "a polite but firm takeover by pigeons",
-    "an unstoppable wave of corporate jargon",
-    "a city-wide invasion of rubber ducks",
-    "a lunar-powered tidal meeting that never ends"
-  ],
-  cause_pg: [
-    "someone pressed ‘Update All’ on a Friday",
-    "the calendar decided every day is Monday",
-    "the to-do list achieved sentience and quit",
-    "a weather app became emotionally unavailable",
-    "autocorrect began enforcing the Oxford comma with force",
-    "a spreadsheet mistook 2025 for 1900",
-    "everyone clicked ‘Remind me later’ forever",
-    "an alarm clock unionised and demanded naps"
-  ],
-  cause_spicy: [
-    "the coffee supply chain became decaf only",
-    "printers discovered collective bargaining",
-    "smart fridges formed a chilled council",
-    "pigeons cracked two-factor authentication",
-    "escalators reversed out of spite",
-    "keyboards started charging per vowel",
-    "AI assistants booked meetings with themselves",
-    "routers escaped into the countryside"
-  ],
-  twist_pg: [
-    "…and yet nobody is late, somehow",
-    "…but the sun arrives with a written apology",
-    "…while all plants provide motivational quotes",
-    "…and spontaneous bake sales restore morale",
-    "…but every error comes with a biscuit",
-    "…and the moon agrees to dim slightly for ambience",
-    "…yet the trains run exactly on time, suspiciously",
-    "…and everyone gets the day off, contractually"
-  ],
-  twist_spicy: [
-    "…and rubber ducks seize parliament—peacefully",
-    "…but cats assume managerial positions",
-    "…and every email arrives marked ‘urgent’ forever",
-    "…while Wi-Fi bars become a tradable currency",
-    "…and all meetings require interpretive dance",
-    "…but every phone only speaks in haiku",
-    "…and keyboards demand paid holidays",
-    "…while printers appoint themselves auditors"
-  ],
-  solution_pg: [
-    "Put the kettle on; reboot society; try again.",
-    "Issue biscuits at scale; proceed calmly.",
-    "A brisk walk and a sternly worded post-it note.",
-    "Universal nap time followed by organised chaos.",
-    "Switch it off and on again (the usual).",
-    "Queue politely until civilisation resets.",
-    "Reassign blame to Mercury; carry on.",
-    "Deploy tea. Lots of tea."
-  ],
-  solution_spicy: [
-    "Offer the pigeons cabinet positions; negotiate snacks.",
-    "Bribe the printers with premium paper.",
-    "Appoint a cat as interim CTO; accept purring.",
-    "Pay the rubber ducks in bath time.",
-    "Introduce a biscuit-backed currency.",
-    "Mandate five-minute meetings by law.",
-    "Replace buzzwords with charades.",
-    "Turn it off and on again, but with jazz."
-  ],
-  sources: [
-    "Journal of Improbable Events (2025)",
-    "Proceedings of the Global Biscuit Council",
-    "Quarterly Review of Mild Catastrophes",
-    "International Almanac of Silly Predictions",
-    "Royal Society of Tea-Based Solutions",
-    "Institute for Advanced Faffing"
-  ]
+  when:["next Tuesday, right after lunch","the moment someone says “it’s just a quick meeting”","precisely at tea time","as Mercury retrogrades for dramatic effect","the instant a group chat hits 100 unread messages","when the Wi-Fi flickers thrice","at 03:07, because the apocalypse keeps odd hours","during the annual office fire drill that nobody takes seriously"],
+  type_pg:["a perfectly polite minor apocalypse","a bureaucracy-induced meltdown","a global calendar sync failure","a spontaneous mass nap","a civilisation-wide kettle shortage","an outbreak of unstoppable small talk","a planet-scale spreadsheet crash","a universal ‘Reply-All’ incident"],
+  type_spicy:["a mildly chaotic vending-machine uprising","a paperwork avalanche of biblical admin","a dignified stampede towards the biscuit aisle","a dramatic shortage of functioning chargers","a polite but firm takeover by pigeons","an unstoppable wave of corporate jargon","a city-wide invasion of rubber ducks","a lunar-powered tidal meeting that never ends"],
+  cause_pg:["someone pressed ‘Update All’ on a Friday","the calendar decided every day is Monday","the to-do list achieved sentience and quit","a weather app became emotionally unavailable","autocorrect began enforcing the Oxford comma with force","a spreadsheet mistook 2025 for 1900","everyone clicked ‘Remind me later’ forever","an alarm clock unionised and demanded naps"],
+  cause_spicy:["the coffee supply chain became decaf only","printers discovered collective bargaining","smart fridges formed a chilled council","pigeons cracked two-factor authentication","escalators reversed out of spite","keyboards started charging per vowel","AI assistants booked meetings with themselves","routers escaped into the countryside"],
+  twist_pg:["…and yet nobody is late, somehow","…but the sun arrives with a written apology","…while all plants provide motivational quotes","…and spontaneous bake sales restore morale","…but every error comes with a biscuit","…and the moon agrees to dim slightly for ambience","…yet the trains run exactly on time, suspiciously","…and everyone gets the day off, contractually"],
+  twist_spicy:["…and rubber ducks seize parliament—peacefully","…but cats assume managerial positions","…and every email arrives marked ‘urgent’ forever","…while Wi-Fi bars become a tradable currency","…and all meetings require interpretive dance","…but every phone only speaks in haiku","…and keyboards demand paid holidays","…while printers appoint themselves auditors"],
+  solution_pg:["Put the kettle on; reboot society; try again.","Issue biscuits at scale; proceed calmly.","A brisk walk and a sternly worded post-it note.","Universal nap time followed by organised chaos.","Switch it off and on again (the usual).","Queue politely until civilisation resets.","Reassign blame to Mercury; carry on.","Deploy tea. Lots of tea."],
+  solution_spicy:["Offer the pigeons cabinet positions; negotiate snacks.","Bribe the printers with premium paper.","Appoint a cat as interim CTO; accept purring.","Pay the rubber ducks in bath time.","Introduce a biscuit-backed currency.","Mandate five-minute meetings by law.","Replace buzzwords with charades.","Turn it off and on again, but with jazz."],
+  sources:["Journal of Improbable Events (2025)","Proceedings of the Global Biscuit Council","Quarterly Review of Mild Catastrophes","International Almanac of Silly Predictions","Royal Society of Tea-Based Solutions","Institute for Advanced Faffing"]
 };
 
-// Build one scenario from a RNG + mode
 function buildScenario(rng, pgMode){
   var type = pgMode ? pick(BANK.type_pg, rng) : pick(BANK.type_spicy, rng);
   var cause = pgMode ? pick(BANK.cause_pg, rng) : pick(BANK.cause_spicy, rng);
@@ -187,7 +81,6 @@ function buildScenario(rng, pgMode){
   var fix   = pgMode ? pick(BANK.solution_pg, rng) : pick(BANK.solution_spicy, rng);
   var when  = pick(BANK.when, rng);
   var src   = pick(BANK.sources, rng);
-
   var lines = [];
   lines.push("On " + when + ", " + type + " begins when " + cause + ".");
   lines.push("The twist: " + twist);
@@ -195,19 +88,19 @@ function buildScenario(rng, pgMode){
   return { text: lines.join(" "), source: "Source: " + src };
 }
 
-// ===== DOM =====
+// ===== DOM + State =====
 var out = document.getElementById('out');
 var source = document.getElementById('source');
 var genBtn = document.getElementById('gen');
 var copyBtn = document.getElementById('copy');
 var tweetBtn = document.getElementById('tweet');
-var slackBtn = document.getElementById('slack');
+var waBtn = document.getElementById('whatsapp');
 var linkBtn = document.getElementById('link');
 var pgChk = document.getElementById('pg');
 
-// State
-var lastSeed = null;
-var lastText = "";
+var lastSeed = null, lastText = "";
+
+function currentShareURL(){ return location.href.split('#')[0] + (location.hash||""); }
 
 // Generate + render
 function generate(seed){
@@ -217,11 +110,8 @@ function generate(seed){
   var scenario = buildScenario(rng, pgMode);
   lastSeed = s;
   lastText = scenario.text + "\n" + scenario.source;
-
   out.textContent = scenario.text;
   source.textContent = scenario.source;
-
-  // Update URL hash for shareable permalink
   var hash = "#s=" + encodeURIComponent(String(s)) + "&pg=" + (pgMode?1:0);
   if(location.hash !== hash){ history.replaceState(null,"",hash); }
   setStatus("Generated • share link updated.");
@@ -235,33 +125,31 @@ copyBtn.addEventListener('click', function(){
   if(navigator.clipboard && navigator.clipboard.writeText){
     navigator.clipboard.writeText(lastText).then(function(){ setStatus("Copied to clipboard."); })
       .catch(function(){ setStatus("Clipboard blocked — select and copy manually."); });
-  }else{
-    setStatus("Clipboard unsupported — select and copy manually.");
-  }
+  } else { setStatus("Clipboard unsupported — select and copy manually."); }
 });
 
 // Tweet
 tweetBtn.addEventListener('click', function(){
   var msg = lastText || "Summoning a brand-new apocalypse at QBX Labs.";
-  var url = location.href.split('#')[0] + (location.hash||"");
+  var url = currentShareURL();
   var t = "https://twitter.com/intent/tweet?text=" + encodeURIComponent(msg) + "&url=" + encodeURIComponent(url) + "&hashtags=QBXLabs,ApocalypseGenerator";
   window.open(t, "_blank");
 });
 
-// Slack
-slackBtn.addEventListener('click', function(){
-  window.open("https://app.slack.com/client", "_blank");
+// WhatsApp (remembered preference)
+waBtn.addEventListener('click', function(){
+  var msg = (lastText || "Summoning a brand-new apocalypse at QBX Labs.") + "\n" + currentShareURL();
+  var w = "https://api.whatsapp.com/send?text=" + encodeURIComponent(msg);
+  window.open(w, "_blank");
 });
 
 // Share link
 linkBtn.addEventListener('click', function(){
-  var u = location.href.split('#')[0] + (location.hash||"");
+  var u = currentShareURL();
   if(navigator.clipboard && navigator.clipboard.writeText){
     navigator.clipboard.writeText(u).then(function(){ setStatus("Share link copied."); })
       .catch(function(){ setStatus("Clipboard blocked — copy from the address bar."); });
-  }else{
-    setStatus("Copy from the address bar.");
-  }
+  } else { setStatus("Copy from the address bar."); }
 });
 
 // Load from hash if present
@@ -271,7 +159,6 @@ linkBtn.addEventListener('click', function(){
     var seed = parseInt(h.s, 10);
     if(!isNaN(seed)){ pgChk.checked = (String(h.pg||'1')==='1'); generate(seed); return; }
   }
-  // First run, fresh
   generate();
 })();
 </script>
