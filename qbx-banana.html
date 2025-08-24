@@ -1,0 +1,294 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Banana-Gram — QBX Labs</title>
+<meta name="description" content="Send a virtual banana with a cheeky message. Choose a tone (prank, insult, wish, etc.), add a name, and share via WhatsApp.">
+<style>
+  :root{--bg:#0b0b0c;--ink:#f5f5f6;--muted:#b6b6ba;--card:#141417;--br:#232328;--accent:#8b5cf6;--ok:#22c55e}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 system-ui,-apple-system,Segoe UI,Inter,Roboto,Arial,sans-serif}
+  .wrap{max-width:980px;margin:0 auto;padding:24px}
+  h1{font-size:clamp(26px,6vw,42px);margin:0 0 6px}
+  .lead{color:var(--muted);margin:0 0 16px}
+  .panel{background:var(--card);border:1px solid var(--br);border-radius:16px;padding:16px;margin:14px 0}
+  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  .controls{display:grid;grid-template-columns:1fr;gap:12px}
+  .choices{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px}
+  .chip{cursor:pointer;border-radius:999px;border:1px solid #2b2b31;background:#111113;color:var(--ink);padding:9px 12px;text-align:center;font-weight:700}
+  .chip.active{background:var(--accent);border-color:var(--accent)}
+  input,button{border-radius:12px;border:1px solid #2b2b31;background:#111113;color:var(--ink);padding:10px 12px}
+  button{cursor:pointer;font-weight:700}
+  button.primary{background:var(--accent);border-color:var(--accent)}
+  button:hover{filter:brightness(1.06)}
+  label.small{font-size:13px;color:var(--muted);display:flex;gap:8px;align-items:center}
+  .out{display:grid;grid-template-columns:180px 1fr;gap:16px;align-items:center;margin-top:12px}
+  @media (max-width:640px){ .out{grid-template-columns:1fr; text-align:center} .banana{margin:0 auto} }
+  .msg{font-size:clamp(18px,2.4vw,22px);background:#0f0f12;border:1px dashed #3a3a42;border-radius:14px;padding:16px;min-height:120px;line-height:1.6}
+  .small{font-size:13px;color:var(--muted)}
+  .status{margin-left:auto}
+  /* Fallback mini share bar */
+  .share{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:10px}
+  .share .btn{cursor:pointer;border-radius:12px;border:1px solid #2b2b31;background:#111113;color:var(--ink);padding:10px 14px;font-weight:700}
+  .share .btn.whatsapp{background:#00cc00;border-color:#00cc00;color:#000}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🍌 Banana-Gram</h1>
+  <p class="lead">Send a **virtual banana** with a cheeky message. Pick a vibe, add a name, and share.</p>
+
+  <section class="panel">
+    <div class="controls">
+      <div class="row" style="justify-content:space-between;align-items:center">
+        <div class="row" style="gap:8px">
+          <span class="small">Tone</span>
+        </div>
+        <label class="small"><input id="pg" type="checkbox" checked> PG mode</label>
+      </div>
+
+      <div id="tones" class="choices" role="listbox" aria-label="Tone choices">
+        <!-- chips injected -->
+      </div>
+
+      <div class="row">
+        <input id="name" type="text" placeholder="Recipient name (optional)" style="flex:1;min-width:220px"/>
+        <button id="gen" class="primary">✨ Generate</button>
+        <span id="status" class="small status">Ready.</span>
+      </div>
+    </div>
+
+    <div class="out">
+      <!-- Inline SVG banana (always available) -->
+      <div class="banana" aria-hidden="true">
+        <svg width="160" height="160" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" role="img">
+          <title>Banana</title>
+          <defs>
+            <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#ffe566"/>
+              <stop offset="100%" stop-color="#f4c842"/>
+            </linearGradient>
+          </defs>
+          <path d="M160 40c-6 18-18 29-36 34-18 5-32 4-47 18-22 21-24 44-24 44s23 2 44-20c13-14 13-28 18-47 5-18 16-30 34-36 4-1 8 3 11 7z" fill="url(#g)" stroke="#b78923" stroke-width="3" />
+          <path d="M54 136c18 6 42 2 62-18" stroke="#b78923" stroke-width="3" fill="none" opacity="0.6"/>
+          <circle cx="150" cy="44" r="6" fill="#2b2313"/>
+          <circle cx="146" cy="48" r="2" fill="#fff" opacity="0.7"/>
+        </svg>
+      </div>
+      <div>
+        <div id="msg" class="msg">Your banana message will appear here. Keep it cheeky, not cruel.</div>
+
+        <!-- Global share bar mount (uses QBXShare if present) -->
+        <div id="qbx-share-bar" class="share" style="display:none"></div>
+        <!-- Fallback local share -->
+        <div id="local-share" class="share">
+          <button id="copy" class="btn">📋 Copy</button>
+          <button id="tweet" class="btn">🐦 Twitter</button>
+          <button id="wa" class="btn whatsapp">🟢 WhatsApp</button>
+          <button id="link" class="btn">🔗 Share link</button>
+        </div>
+      </div>
+    </div>
+
+    <p class="small" style="margin-top:10px">Be kind. Keep it PG with the toggle. No hate or harassment.</p>
+  </section>
+</div>
+
+<script>
+// ===== Tones & templates (PG by default; “Cheeky Insult” stays mild) =====
+var TONES = [
+  {id:"prank",      label:"Prank"},
+  {id:"insult",     label:"Cheeky Insult"},
+  {id:"compliment", label:"Compliment"},
+  {id:"wish",       label:"Wish"},
+  {id:"love",       label:"Love Note"},
+  {id:"corporate",  label:"Corporate"},
+  {id:"apology",    label:"Apology"},
+  {id:"motivate",   label:"Motivation"}
+];
+
+var BANK = {
+  prank: [
+    "Hey {name}, I sent you this banana to let you know you’ve officially slipped into greatness.",
+    "{name}, urgent: this banana is now your manager. It only schedules snack breaks.",
+    "Breaking news, {name}: this banana just outperformed our quarterly goals."
+  ],
+  insult_pg: [
+    "{name}, you’re a legend—mostly of the ‘cautionary tale’ variety. Have a banana.",
+    "For you, {name}: a banana. Because low-effort genius is still genius.",
+    "{name}, consider this banana your productivity mentor: quietly doing nothing, magnificently."
+  ],
+  compliment: [
+    "{name}, you’re a certified top banana. This one is merely your understudy.",
+    "Golden, curved, and oddly inspirational—just like you, {name}.",
+    "{name}, if excellence had a fruit mascot, it would be jealous of you."
+  ],
+  wish: [
+    "Wishing you a day as bright as this banana, {name}.",
+    "May your Monday peel itself open kindly, {name}.",
+    "For luck and laughs, {name}: one perfectly overqualified banana."
+  ],
+  love: [
+    "{name}, I find you a-peel-ing. (Yes, I went there.)",
+    "Roses are red, bananas are yellow, {name}, you’re my favourite mellow fellow.",
+    "{name}, if we were fruit, I’d choose you every time. This banana can be our notary."
+  ],
+  corporate: [
+    "Per my last fruit: {name}, please circle back on this banana by EOD.",
+    "OKR update, {name}: ship two smiles and a banana by close of play.",
+    "Mission-critical deliverable for {name}: vibe + banana. Consider it shipped."
+  ],
+  apology: [
+    "Sorry, {name}. Please accept this conciliatory banana and one (1) sincere wince.",
+    "I goofed, {name}. Here’s a banana bribe and a promise to do better.",
+    "{name}, forgiveness request attached. Exhibit A: banana."
+  ],
+  motivate: [
+    "Small steps, {name}. Even bananas level up: green → gold → glorious.",
+    "You’ve got this, {name}. Aim high, stay ripe, avoid slippery meetings.",
+    "Today’s KPI, {name}: keep positive, ingest potassium."
+  ],
+  // Slightly spicier (still non-abusive). Used only if PG unchecked:
+  insult_spicy: [
+    "{name}, you chaotic smoothie. Take this banana and behave… marginally better.",
+    "You’re like Wi-Fi in a lift, {name}: unreliable yet somehow essential. Have a banana.",
+    "Dear {name}, consider this banana a performance review: curved, firm, and silently judging."
+  ]
+};
+
+// ===== State =====
+var currentTone = "prank";
+var lastText = "";
+
+// ===== DOM =====
+var tonesEl = document.getElementById('tones');
+var pgEl = document.getElementById('pg');
+var nameEl = document.getElementById('name');
+var genBtn = document.getElementById('gen');
+var msgEl = document.getElementById('msg');
+var statusEl = document.getElementById('status');
+
+// Fallback share buttons
+var copyBtn = document.getElementById('copy');
+var twBtn   = document.getElementById('tweet');
+var waBtn   = document.getElementById('wa');
+var linkBtn = document.getElementById('link');
+var localShare = document.getElementById('local-share');
+var globalShare = document.getElementById('qbx-share-bar');
+
+function setStatus(s){ statusEl.textContent = s; }
+function pick(a){ return a[Math.floor(Math.random()*a.length)]; }
+function cleanName(v){
+  v = (v||"").replace(/\s+/g," ").trim();
+  if(!v) return "mate";
+  // Keep it safe and short
+  v = v.replace(/[^a-zA-Z0-9 \-_'’]/g,"");
+  if(v.length>24) v = v.slice(0,24);
+  return v;
+}
+
+function buildMessage(){
+  var name = cleanName(nameEl.value);
+  var pg = !!pgEl.checked;
+  var key = currentTone;
+  if(currentTone === "insult"){ key = pg ? "insult_pg" : "insult_spicy"; }
+  var bank = BANK[key] || ["{name}, here’s a banana for unspecified reasons."];
+  var t = pick(bank).replace(/{name}/g, name);
+  return t + " 🍌";
+}
+
+function updateShareBars(){
+  // If global QBXShare exists, use it; otherwise keep local share buttons visible
+  if(window.QBXShare){
+    localShare.style.display = "none";
+    globalShare.style.display = "block";
+    QBXShare.init({
+      mountId:'qbx-share-bar',
+      getMessage:function(){ return lastText || "Sending you a Banana-Gram from QBX Labs."; },
+      getURL:function(){ return location.href; },
+      accent:'#00cc00',
+      show:{copy:true,twitter:true,whatsapp:true,link:true}
+    });
+    QBXShare.update(lastText, location.href);
+  } else {
+    localShare.style.display = "flex";
+    globalShare.style.display = "none";
+  }
+}
+
+function generate(){
+  lastText = buildMessage();
+  msgEl.textContent = lastText;
+  setStatus("Ready to share.");
+  updateShareBars();
+  // Update URL seed-ish (lightweight): tone + name for simple permalinks
+  var hash = "#t="+encodeURIComponent(currentTone)+"&n="+encodeURIComponent(cleanName(nameEl.value))+"&pg="+(pgEl.checked?1:0);
+  if(location.hash !== hash){ history.replaceState(null,"",hash); }
+}
+
+// Build tone chips
+(function(){
+  var i;
+  for(i=0;i<TONES.length;i++){
+    (function(tone){
+      var b = document.createElement('button');
+      b.className = 'chip' + (tone.id===currentTone?' active':'');
+      b.textContent = tone.label;
+      b.setAttribute('role','option'); b.setAttribute('aria-selected', tone.id===currentTone?'true':'false');
+      b.addEventListener('click', function(){
+        var actives = tonesEl.querySelectorAll('.chip.active');
+        for(var j=0;j<actives.length;j++){ actives[j].classList.remove('active'); actives[j].setAttribute('aria-selected','false'); }
+        currentTone = tone.id;
+        b.classList.add('active'); b.setAttribute('aria-selected','true');
+        setStatus('Tone set to '+tone.label+'.');
+      });
+      tonesEl.appendChild(b);
+    })(TONES[i]);
+  }
+})();
+
+// Wire up
+genBtn.addEventListener('click', generate);
+
+// Fallback share actions
+copyBtn.addEventListener('click', function(){
+  if(!lastText){ setStatus("Nothing to copy yet."); return; }
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(lastText).then(function(){ setStatus("Copied to clipboard."); })
+      .catch(function(){ setStatus("Clipboard blocked — select and copy manually."); });
+  } else setStatus("Clipboard unsupported — select and copy manually.");
+});
+twBtn.addEventListener('click', function(){
+  var t = 'https://twitter.com/intent/tweet?text='+encodeURIComponent(lastText)+'&url='+encodeURIComponent(location.href)+'&hashtags=QBXLabs,BananaGram';
+  window.open(t,'_blank');
+});
+waBtn.addEventListener('click', function(){
+  var w = 'https://api.whatsapp.com/send?text=' + encodeURIComponent(lastText + "\n" + location.href);
+  window.open(w,'_blank');
+});
+linkBtn.addEventListener('click', function(){
+  var u = location.href;
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(u).then(function(){ setStatus("Share link copied."); })
+      .catch(function(){ setStatus("Clipboard blocked — copy from the address bar."); });
+  } else setStatus("Copy from the address bar.");
+});
+
+// Load from hash (optional deep link)
+(function(){
+  var h = (location.hash||'').replace(/^#/,'');
+  if(!h){ updateShareBars(); return; }
+  var params = {}; var parts = h.split('&'); var i;
+  for(i=0;i<parts.length;i++){ var kv=parts[i].split('='); params[decodeURIComponent(kv[0])] = decodeURIComponent(kv[1]||''); }
+  if(params.t){ currentTone = params.t; }
+  if(params.pg){ pgEl.checked = (String(params.pg)==='1'); }
+  if(params.n){ nameEl.value = params.n; }
+  // Activate the matching chip UI
+  var btns = tonesEl.querySelectorAll('.chip');
+  for(i=0;i<btns.length;i++){ if(btns[i].textContent.toLowerCase().indexOf(currentTone)!==-1){ btns[i].click(); break; } }
+  generate();
+})();
+</script>
+</body>
+</html>
