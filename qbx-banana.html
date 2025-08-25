@@ -210,9 +210,109 @@
   </div>
 
   <script>
-    // [Your Banana-Gram logic goes here]
-    // Example tone banks, message generation, PG mode, etc.
-    // Will not be included unless provided
+    // ===== Banana-Gram Logic =====
+    function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+    function cap(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+    function setStatus(msg) { document.getElementById('status').textContent = msg; }
+
+    // Tone banks
+    const TONES = {
+      prank: [
+        "I have a banana for you. It’s not a real one, but the thought counts.",
+        "You’ve been banana’d! This is your official notice.",
+        "Hold still — I’m sending a virtual banana to your general vicinity.",
+        "This banana is 100% digital, 0% nutritious, and 100% for you.",
+        "Banana alert: a yellow fruit has been teleported into your emotional space."
+      ],
+      insult: [
+        "You’re about as useful as a chocolate teapot.",
+        "Your brain needs a firmware update.",
+        "Even a pigeon could’ve done better — and they don’t pay rent.",
+        "You’ve got the planning skills of a startled squirrel.",
+        "If confusion were a sport, you’d be an Olympic gold medalist."
+      ],
+      wish: [
+        "May your coffee be strong and your Mondays short.",
+        "Wishing you a day so good, even your toaster approves.",
+        "May your Wi-Fi be fast and your meetings short.",
+        "Hope your day runs smoother than a well-oiled spreadsheet.",
+        "Sending you good vibes and zero bugs."
+      ],
+      love: [
+        "You’re the peanut butter to my jelly, the banana to my split.",
+        "If I had a pound for every time I thought of you, I’d buy you a banana empire.",
+        "You’re the only one who truly gets my vibe — and my fruit-based humour.",
+        "Roses are red, violets are blue, this banana’s for you.",
+        "You’re the reason my brain has a smiley face."
+      ]
+    };
+
+    // PG vs. spicy
+    const PG = [
+      "This is a clean, polite banana. No mischief detected.",
+      "The banana is friendly and fully compliant with office regulations.",
+      "This banana has been vetted by the Ministry of Good Vibes.",
+      "A certified PG banana — suitable for all ages and Slack channels."
+    ];
+
+    const SPICY = [
+      "This banana has a dark secret and a questionable past.",
+      "The banana may or may not have unionized. Proceed with caution.",
+      "This banana speaks only in riddles and sarcasm.",
+      "Warning: this banana may cause uncontrollable giggling or mild panic."
+    ];
+
+    // DOM elements
+    const tonesEl = document.getElementById('tones');
+    const nameInput = document.getElementById('name');
+    const msgEl = document.getElementById('msg');
+    const pgToggle = document.getElementById('pg');
+    const genBtn = document.getElementById('gen');
+
+    // Create tone chips
+    Object.keys(TONES).forEach(tone => {
+      const chip = document.createElement('button');
+      chip.className = 'chip';
+      chip.textContent = cap(tone);
+      chip.dataset.tone = tone;
+      chip.addEventListener('click', function() {
+        document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+        this.classList.add('active');
+        chip.dataset.selected = 'true';
+      });
+      tonesEl.appendChild(chip);
+    });
+
+    // Set first chip as active
+    if (tonesEl.children[0]) tonesEl.children[0].click();
+
+    // Generate message
+    function generate() {
+      const selectedTone = document.querySelector('.chip.active')?.dataset.tone || 'prank';
+      const name = nameInput.value.trim();
+      const isPG = pgToggle.checked;
+
+      const base = pick(TONES[selectedTone]);
+      const flavour = isPG ? pick(PG) : pick(SPICY);
+
+      let msg = base;
+      if (name) msg = `${name}, ${msg.charAt(0).toLowerCase() + msg.slice(1)}`;
+      msg += ` ${flavour}`;
+
+      msgEl.textContent = msg;
+      setStatus("Banana delivered 🍌");
+    }
+
+    // Event listeners
+    genBtn.addEventListener('click', generate);
+
+    // Allow Enter key
+    nameInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') genBtn.click();
+    });
+
+    // Initial message
+    setStatus("Ready.");
   </script>
 </body>
 </html>
