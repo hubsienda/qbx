@@ -7,10 +7,10 @@
 <meta name="description" content="Guess the exact live weather condition from WeatherAPI. Type a city, get options, test your meteorological wit.">
 
 <!-- Canonical -->
-<link rel="canonical" href="https://weather.qbx.app">
+<link rel="canonical" href="https://weather.qbx.app/#weather">
 
 <!-- Open Graph / Twitter -->
-<meta property="og:url" content="https://weather.qbx.app">
+<meta property="og:url" content="https://weather.qbx.app/#weather">
 <meta property="og:title" content="QBX Weather — Exact Condition Game">
 <meta property="og:description" content="Guess the exact live weather condition from WeatherAPI. Type a city, get options, test your meteorological wit.">
 <meta property="og:type" content="website">
@@ -19,6 +19,9 @@
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
+
+<!-- Global Share Bar -->
+<script src="https://hubsienda.github.io/qbx/qbx-share.js" defer></script>
 
 <style>
   body{font-family:system-ui,Arial,sans-serif;margin:0;background:#f6f7fb;color:#111}
@@ -82,6 +85,9 @@
       <summary class="small">Debug (raw WeatherAPI response)</summary>
       <pre id="debug">—</pre>
     </details>
+
+    <!-- Share bar mount -->
+    <div id="qbx-share-bar" style="margin-top:12px"></div>
   </section>
 
   <p class="small">Powered by <a href="https://www.weatherapi.com/" title="Weather API">WeatherAPI.com</a></p>
@@ -123,7 +129,7 @@ var resetBtn = document.getElementById('reset');
 var current = null; // {q, correctText}
 var score = 0, streak = 0, best = 0;
 
-// Persisted score (optional)
+// Persisted score
 try {
   var s = JSON.parse(localStorage.getItem('qbx_wx_score') || 'null');
   if (s && typeof s.score==='number') { score=s.score; streak=s.streak||0; best=s.best||0; }
@@ -143,7 +149,7 @@ function rand(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
 function shuffle(a){ for(var i=a.length-1;i>0;i--){ var j=Math.floor(Math.random()*(i+1)); var t=a[i]; a[i]=a[j]; a[j]=t; } return a; }
 function renderScore(){ scoreEl.textContent=score; streakEl.textContent=streak; bestEl.textContent=best; }
 
-// XHR helper (ES5)
+// XHR helper
 function xhrGet(url, cb){
   var x = new XMLHttpRequest();
   x.open("GET", url, true);
@@ -202,7 +208,7 @@ function fetchWeather(q){
           + "?key=" + encodeURIComponent(API_KEY)
           + "&q="   + encodeURIComponent(q)
           + "&aqi=no"
-          + "&_="   + Date.now(); // cache-buster
+          + "&_="   + Date.now();
 
   xhrGet(url, function(err, status, body){
     if(err){ setStatus("Network error", false); debugEl.textContent=String(err); return; }
@@ -215,11 +221,10 @@ function fetchWeather(q){
       setStatus("Unexpected API shape — see Debug", false); debugEl.textContent=body; return;
     }
 
-    var cond = data.current.condition;       // exact WeatherAPI condition
+    var cond = data.current.condition;
     var correctText = String(cond.text);
     var loc = data.location;
 
-    // meta
     var nameBits = [];
     if(loc.name) nameBits.push(loc.name);
     if(loc.region) nameBits.push(loc.region);
@@ -235,17 +240,25 @@ function fetchWeather(q){
     buildChoices(correctText);
     setStatus("Live weather loaded", true);
     current = { q:q, correctText:correctText };
+
+    // update share bar
+    if(window.QBXShare){
+      QBXShare.update(
+        "I’m playing QBX Weather — can you guess the exact condition in " + fullName + "?",
+        "https://weather.qbx.app/#weather"
+      );
+    }
   });
 }
 
 // Wire up
-document.getElementById("go").addEventListener("click", function(){
+goBtn.addEventListener("click", function(){
   var q = trim(qInput.value);
   if(!q){ setStatus("Please type a place.", false); return; }
   fetchWeather(q);
 });
 qInput.addEventListener("keydown", function(ev){
-  if(ev.key === "Enter" || ev.keyCode === 13) document.getElementById("go").click();
+  if(ev.key === "Enter" || ev.keyCode === 13) goBtn.click();
 });
 rndBtn.addEventListener("click", function(){
   var pick = rand(SUGGEST);
@@ -268,6 +281,19 @@ resetBtn.addEventListener("click", function(){
 
 // Init score UI
 renderScore();
+
+// Init share bar once page loads
+document.addEventListener("DOMContentLoaded", function(){
+  if(window.QBXShare){
+    QBXShare.init({
+      mountId:'qbx-share-bar',
+      getMessage:function(){ return "Play QBX Weather — Exact Condition Game"; },
+      getURL:function(){ return "https://weather.qbx.app/#weather"; },
+      accent:'#00cc00',
+      show:{copy:true,twitter:true,whatsapp:true,link:true}
+    });
+  }
+});
 </script>
 </body>
 </html>
