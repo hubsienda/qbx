@@ -1,182 +1,285 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Apocalypse Generator — QBX Labs</title>
-<meta name="description" content="Click to generate a brand-new apocalypse with British humour. PG mode by default. Share a permalink with mates.">
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Apocalypse Generator — QBX Labs</title>
+  <meta name="description" content="Click to generate a brand-new apocalypse with British humour. PG mode by default. Share a permalink with mates.">
 
-<!-- Canonical: ALWAYS point to your subdomain -->
-<link rel="canonical" href="https://apocalypse.qbx.app">
+  <!-- Canonical -->
+  <link rel="canonical" href="https://apocalypse.qbx.app">
 
-<!-- Open Graph / Twitter (previews) -->
-<meta property="og:url" content="https://apocalypse.qbx.app">
-<meta property="og:title" content="Apocalypse Generator — QBX Labs">
-<meta property="og:description" content="Summon a fresh, ridiculous end of the world. PG mode. Share to WhatsApp.">
-<meta property="og:type" content="website">
-<meta property="og:image" content="https://raw.githubusercontent.com/hubsienda/qbx/refs/heads/main/og-apocalypse.png">
-<meta property="og:image:type" content="image/png">
-<meta property="og:image:width" content="1200">
-<meta property="og:image:height" content="630">
+  <!-- Open Graph / Twitter -->
+  <meta property="og:url" content="https://apocalypse.qbx.app">
+  <meta property="og:title" content="Apocalypse Generator — QBX Labs">
+  <meta property="og:description" content="Summon a fresh, ridiculous end of the world. PG mode. Share to WhatsApp.">
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="https://raw.githubusercontent.com/hubsienda/qbx/refs/heads/main/og-apocalypse.png">
+  <meta property="og:image:type" content="image/png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
 
-<meta name="twitter:card" content="summary_large_image">
-
-<style>
-  :root{
-    --bg:#0b0b0c; --ink:#f5f5f6; --muted:#b6b6ba; --card:#141417; --br:#232328;
-    --btn:#111113; --accent:#8b5cf6; --ok:#22c55e;
-  }
-  *{box-sizing:border-box}
-  body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 system-ui,-apple-system,Segoe UI,Inter,Roboto,Arial,sans-serif}
-  .wrap{max-width:980px;margin:0 auto;padding:24px}
-  h1{font-size:clamp(26px,6vw,42px);margin:0 0 6px}
-  .lead{color:var(--muted);margin:0 0 16px}
-  .panel{background:var(--card);border:1px solid var(--br);border-radius:16px;padding:16px;margin:14px 0}
-  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-  label.small{font-size:13px;color:var(--muted);display:flex;gap:8px;align-items:center}
-  input[type="checkbox"]{transform:translateY(1px)}
-  button{cursor:pointer;border-radius:12px;border:1px solid #2b2b31;background:var(--btn);color:var(--ink);padding:10px 14px;font-weight:700}
-  button.primary{background:var(--accent);border-color:var(--accent)}
-  button:hover{filter:brightness(1.06)}
-  .out{font-size:clamp(18px,2.4vw,22px);background:#0f0f12;border:1px dashed #3a3a42;border-radius:14px;padding:16px;min-height:140px;line-height:1.55}
-  .small{font-size:13px;color:var(--muted)}
-  .status{margin-left:auto}
-  .cite{font-size:13px;color:#9aa;opacity:.95;margin-top:8px}
-</style>
+  <style>
+    :root{
+      --bg:#0b0b0c; --ink:#f5f5f6; --muted:#b6b6ba; --card:#141417; --br:#232328;
+      --btn:#111113; --accent:#8b5cf6; --ok:#22c55e;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 system-ui,-apple-system,Segoe UI,Inter,Roboto,Arial,sans-serif}
+    .wrap{max-width:980px;margin:0 auto;padding:24px}
+    h1{font-size:clamp(26px,6vw,42px);margin:0 0 6px}
+    .lead{color:var(--muted);margin:0 0 16px}
+    .panel{background:var(--card);border:1px solid var(--br);border-radius:16px;padding:16px;margin:14px 0}
+    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+    label.small{font-size:13px;color:var(--muted);display:flex;gap:8px;align-items:center}
+    input[type="checkbox"]{transform:translateY(1px)}
+    button{cursor:pointer;border-radius:12px;border:1px solid #2b2b31;background:var(--btn);color:var(--ink);padding:10px 14px;font-weight:700}
+    button.primary{background:var(--accent);border-color:var(--accent)}
+    button:hover{filter:brightness(1.06)}
+    .out{font-size:clamp(18px,2.4vw,22px);background:#0f0f12;border:1px dashed #3a3a42;border-radius:14px;padding:16px;min-height:140px;line-height:1.55}
+    .small{font-size:13px;color:var(--muted)}
+    .status{margin-left:auto}
+    .cite{font-size:13px;color:#9aa;opacity:.95;margin-top:8px}
+  </style>
 </head>
 <body>
-<div class="wrap">
-  <h1>🌍💥 Apocalypse Generator</h1>
-  <p class="lead">Click to summon a brand-new end of the world. PG mode by default; British humour throughout.</p>
+  <div class="wrap">
+    <h1>🌍💥 Apocalypse Generator</h1>
+    <p class="lead">Click to summon a brand-new end of the world. PG mode by default; British humour throughout.</p>
 
-  <section class="panel">
-    <div class="row" style="justify-content:space-between">
-      <div class="row">
-        <button id="gen" class="primary">✨ Generate</button>
-        <button id="copy">📋 Copy</button>
-        <button id="tweet">🐦 Tweet</button>
-        <button id="whatsapp">🟢 WhatsApp</button>
-        <button id="link">🔗 Copy share link</button>
+    <section class="panel">
+      <div class="row" style="justify-content:space-between">
+        <div class="row">
+          <button id="gen" class="primary">✨ Generate</button>
+          <button id="copy">📋 Copy</button>
+          <button id="link">🔗 Copy share link</button>
+        </div>
+        <label class="small">
+          <input id="pg" type="checkbox" checked> PG mode
+        </label>
+        <span id="status" class="small status">Ready.</span>
       </div>
-      <label class="small"><input id="pg" type="checkbox" checked> PG mode</label>
-      <span id="status" class="small status">Ready.</span>
-    </div>
 
-    <div id="out" class="out">Your apocalypse will appear here. Ideally before tea.</div>
-    <div id="source" class="cite"></div>
-  </section>
+      <div id="out" class="out">Your apocalypse will appear here. Ideally before tea.</div>
+      <div id="source" class="cite"></div>
 
-  <p class="small">Disclaimer: this is satire. No doom, only gloom with giggles. Keep it kind; no hate, no real harm.</p>
-</div>
+      <!-- Unified Share Bar -->
+      <div style="margin-top:16px;">
+        <iframe 
+          src="https://hubsienda.github.io/my-share-bar/share-bar.html?ref=https://apocalypse.qbx.app" 
+          style="border:none; width:100%; max-width:240px; height:60px;" 
+          frameborder="0"
+          title="Share this apocalypse">
+        </iframe>
+      </div>
+    </section>
 
-<script>
-// ===== Utilities (ES5) =====
-function pick(a, rng){ return a[Math.floor(rng()*a.length)]; }
-function makeRNG(seed){ var m=0x80000000,a=1103515245,c=12345,s=(seed>>>0)||Math.floor(Date.now()%m); return function(){ s=(a*s+c)%m; return s/m; }; }
-function parseHash(){ var h=(location.hash||'').replace(/^#/,''); var o={}; if(!h) return o; var p=h.split('&'); for(var i=0;i<p.length;i++){ var kv=p[i].split('='); o[decodeURIComponent(kv[0])]=decodeURIComponent(kv[1]||''); } return o; }
-function setStatus(s){ document.getElementById('status').textContent = s; }
+    <p class="small">Disclaimer: this is satire. No doom, only gloom with giggles. Keep it kind; no hate, no real harm.</p>
+  </div>
 
-// ===== Content banks =====
-var BANK = {
-  when:["next Tuesday, right after lunch","the moment someone says “it’s just a quick meeting”","precisely at tea time","as Mercury retrogrades for dramatic effect","the instant a group chat hits 100 unread messages","when the Wi-Fi flickers thrice","at 03:07, because the apocalypse keeps odd hours","during the annual office fire drill that nobody takes seriously"],
-  type_pg:["a perfectly polite minor apocalypse","a bureaucracy-induced meltdown","a global calendar sync failure","a spontaneous mass nap","a civilisation-wide kettle shortage","an outbreak of unstoppable small talk","a planet-scale spreadsheet crash","a universal ‘Reply-All’ incident"],
-  type_spicy:["a mildly chaotic vending-machine uprising","a paperwork avalanche of biblical admin","a dignified stampede towards the biscuit aisle","a dramatic shortage of functioning chargers","a polite but firm takeover by pigeons","an unstoppable wave of corporate jargon","a city-wide invasion of rubber ducks","a lunar-powered tidal meeting that never ends"],
-  cause_pg:["someone pressed ‘Update All’ on a Friday","the calendar decided every day is Monday","the to-do list achieved sentience and quit","a weather app became emotionally unavailable","autocorrect began enforcing the Oxford comma with force","a spreadsheet mistook 2025 for 1900","everyone clicked ‘Remind me later’ forever","an alarm clock unionised and demanded naps"],
-  cause_spicy:["the coffee supply chain became decaf only","printers discovered collective bargaining","smart fridges formed a chilled council","pigeons cracked two-factor authentication","escalators reversed out of spite","keyboards started charging per vowel","AI assistants booked meetings with themselves","routers escaped into the countryside"],
-  twist_pg:["…and yet nobody is late, somehow","…but the sun arrives with a written apology","…while all plants provide motivational quotes","…and spontaneous bake sales restore morale","…but every error comes with a biscuit","…and the moon agrees to dim slightly for ambience","…yet the trains run exactly on time, suspiciously","…and everyone gets the day off, contractually"],
-  twist_spicy:["…and rubber ducks seize parliament—peacefully","…but cats assume managerial positions","…and every email arrives marked ‘urgent’ forever","…while Wi-Fi bars become a tradable currency","…and all meetings require interpretive dance","…but every phone only speaks in haiku","…and keyboards demand paid holidays","…while printers appoint themselves auditors"],
-  solution_pg:["Put the kettle on; reboot society; try again.","Issue biscuits at scale; proceed calmly.","A brisk walk and a sternly worded post-it note.","Universal nap time followed by organised chaos.","Switch it off and on again (the usual).","Queue politely until civilisation resets.","Reassign blame to Mercury; carry on.","Deploy tea. Lots of tea."],
-  solution_spicy:["Offer the pigeons cabinet positions; negotiate snacks.","Bribe the printers with premium paper.","Appoint a cat as interim CTO; accept purring.","Pay the rubber ducks in bath time.","Introduce a biscuit-backed currency.","Mandate five-minute meetings by law.","Replace buzzwords with charades.","Turn it off and on again, but with jazz."],
-  sources:["Journal of Improbable Events (2025)","Proceedings of the Global Biscuit Council","Quarterly Review of Mild Catastrophes","International Almanac of Silly Predictions","Royal Society of Tea-Based Solutions","Institute for Advanced Faffing"]
-};
+  <script>
+    // ===== Utilities =====
+    function pick(a, rng) { return a[Math.floor(rng() * a.length)]; }
+    function makeRNG(seed) {
+      var m = 0x80000000, a = 1103515245, c = 12345;
+      var s = (seed >>> 0) || Math.floor(Date.now() % m);
+      return function() { s = (a * s + c) % m; return s / m; };
+    }
+    function parseHash() {
+      var h = (location.hash || '').replace(/^#/, '');
+      var o = {};
+      if (!h) return o;
+      var p = h.split('&');
+      for (var i = 0; i < p.length; i++) {
+        var kv = p[i].split('=');
+        o[decodeURIComponent(kv[0])] = decodeURIComponent(kv[1] || '');
+      }
+      return o;
+    }
+    function setStatus(s) { document.getElementById('status').textContent = s; }
 
-function buildScenario(rng, pgMode){
-  var type = pgMode ? pick(BANK.type_pg, rng) : pick(BANK.type_spicy, rng);
-  var cause = pgMode ? pick(BANK.cause_pg, rng) : pick(BANK.cause_spicy, rng);
-  var twist = pgMode ? pick(BANK.twist_pg, rng) : pick(BANK.twist_spicy, rng);
-  var fix   = pgMode ? pick(BANK.solution_pg, rng) : pick(BANK.solution_spicy, rng);
-  var when  = pick(BANK.when, rng);
-  var src   = pick(BANK.sources, rng);
-  var lines = [];
-  lines.push("On " + when + ", " + type + " begins when " + cause + ".");
-  lines.push("The twist: " + twist);
-  lines.push("The only sensible response: " + fix);
-  return { text: lines.join(" "), source: "Source: " + src };
-}
+    // ===== Content Banks =====
+    var BANK = {
+      when: [
+        "next Tuesday, right after lunch",
+        "the moment someone says “it’s just a quick meeting”",
+        "precisely at tea time",
+        "as Mercury retrogrades for dramatic effect",
+        "the instant a group chat hits 100 unread messages",
+        "when the Wi-Fi flickers thrice",
+        "at 03:07, because the apocalypse keeps odd hours",
+        "during the annual office fire drill that nobody takes seriously"
+      ],
+      type_pg: [
+        "a perfectly polite minor apocalypse",
+        "a bureaucracy-induced meltdown",
+        "a global calendar sync failure",
+        "a spontaneous mass nap",
+        "a civilisation-wide kettle shortage",
+        "an outbreak of unstoppable small talk",
+        "a planet-scale spreadsheet crash",
+        "a universal ‘Reply-All’ incident"
+      ],
+      type_spicy: [
+        "a mildly chaotic vending-machine uprising",
+        "a paperwork avalanche of biblical admin",
+        "a dignified stampede towards the biscuit aisle",
+        "a dramatic shortage of functioning chargers",
+        "a polite but firm takeover by pigeons",
+        "an unstoppable wave of corporate jargon",
+        "a city-wide invasion of rubber ducks",
+        "a lunar-powered tidal meeting that never ends"
+      ],
+      cause_pg: [
+        "someone pressed ‘Update All’ on a Friday",
+        "the calendar decided every day is Monday",
+        "the to-do list achieved sentience and quit",
+        "a weather app became emotionally unavailable",
+        "autocorrect began enforcing the Oxford comma with force",
+        "a spreadsheet mistook 2025 for 1900",
+        "everyone clicked ‘Remind me later’ forever",
+        "an alarm clock unionised and demanded naps"
+      ],
+      cause_spicy: [
+        "the coffee supply chain became decaf only",
+        "printers discovered collective bargaining",
+        "smart fridges formed a chilled council",
+        "pigeons cracked two-factor authentication",
+        "escalators reversed out of spite",
+        "keyboards started charging per vowel",
+        "AI assistants booked meetings with themselves",
+        "routers escaped into the countryside"
+      ],
+      twist_pg: [
+        "…and yet nobody is late, somehow",
+        "…but the sun arrives with a written apology",
+        "…while all plants provide motivational quotes",
+        "…and spontaneous bake sales restore morale",
+        "…but every error comes with a biscuit",
+        "…and the moon agrees to dim slightly for ambience",
+        "…yet the trains run exactly on time, suspiciously",
+        "…and everyone gets the day off, contractually"
+      ],
+      twist_spicy: [
+        "…and rubber ducks seize parliament—peacefully",
+        "…but cats assume managerial positions",
+        "…and every email arrives marked ‘urgent’ forever",
+        "…while Wi-Fi bars become a tradable currency",
+        "…and all meetings require interpretive dance",
+        "…but every phone only speaks in haiku",
+        "…and keyboards demand paid holidays",
+        "…while printers appoint themselves auditors"
+      ],
+      solution_pg: [
+        "Put the kettle on; reboot society; try again.",
+        "Issue biscuits at scale; proceed calmly.",
+        "A brisk walk and a sternly worded post-it note.",
+        "Universal nap time followed by organised chaos.",
+        "Switch it off and on again (the usual).",
+        "Queue politely until civilisation resets.",
+        "Reassign blame to Mercury; carry on.",
+        "Deploy tea. Lots of tea."
+      ],
+      solution_spicy: [
+        "Offer the pigeons cabinet positions; negotiate snacks.",
+        "Bribe the printers with premium paper.",
+        "Appoint a cat as interim CTO; accept purring.",
+        "Pay the rubber ducks in bath time.",
+        "Introduce a biscuit-backed currency.",
+        "Mandate five-minute meetings by law.",
+        "Replace buzzwords with charades.",
+        "Turn it off and on again, but with jazz."
+      ],
+      sources: [
+        "Journal of Improbable Events (2025)",
+        "Proceedings of the Global Biscuit Council",
+        "Quarterly Review of Mild Catastrophes",
+        "International Almanac of Silly Predictions",
+        "Royal Society of Tea-Based Solutions",
+        "Institute for Advanced Faffing"
+      ]
+    };
 
-// ===== DOM + State =====
-var out = document.getElementById('out');
-var source = document.getElementById('source');
-var genBtn = document.getElementById('gen');
-var copyBtn = document.getElementById('copy');
-var tweetBtn = document.getElementById('tweet');
-var waBtn = document.getElementById('whatsapp');
-var linkBtn = document.getElementById('link');
-var pgChk = document.getElementById('pg');
+    function buildScenario(rng, pgMode) {
+      var type = pgMode ? pick(BANK.type_pg, rng) : pick(BANK.type_spicy, rng);
+      var cause = pgMode ? pick(BANK.cause_pg, rng) : pick(BANK.cause_spicy, rng);
+      var twist = pgMode ? pick(BANK.twist_pg, rng) : pick(BANK.twist_spicy, rng);
+      var fix = pgMode ? pick(BANK.solution_pg, rng) : pick(BANK.solution_spicy, rng);
+      var when = pick(BANK.when, rng);
+      var src = pick(BANK.sources, rng);
+      var lines = [];
+      lines.push("On " + when + ", " + type + " begins when " + cause + ".");
+      lines.push("The twist: " + twist);
+      lines.push("The only sensible response: " + fix);
+      return { text: lines.join(" "), source: "Source: " + src };
+    }
 
-var lastSeed = null, lastText = "";
+    // ===== DOM + State =====
+    var out = document.getElementById('out');
+    var source = document.getElementById('source');
+    var genBtn = document.getElementById('gen');
+    var copyBtn = document.getElementById('copy');
+    var linkBtn = document.getElementById('link');
+    var pgChk = document.getElementById('pg');
 
-function currentShareURL(){ return location.href.split('#')[0] + (location.hash||""); }
+    var lastSeed = null, lastText = "";
 
-// Generate + render
-function generate(seed){
-  var pgMode = !!pgChk.checked;
-  var s = (typeof seed==='number') ? seed : Math.floor(Date.now() % 0x7fffffff);
-  var rng = makeRNG(s);
-  var scenario = buildScenario(rng, pgMode);
-  lastSeed = s;
-  lastText = scenario.text + "\n" + scenario.source;
-  out.textContent = scenario.text;
-  source.textContent = scenario.source;
-  var hash = "#s=" + encodeURIComponent(String(s)) + "&pg=" + (pgMode?1:0);
-  if(location.hash !== hash){ history.replaceState(null,"",hash); }
-  setStatus("Generated • share link updated.");
-}
+    function currentShareURL() { return location.href.split('#')[0] + (location.hash || ""); }
 
-genBtn.addEventListener('click', function(){ generate(); });
+    function generate(seed) {
+      var pgMode = !!pgChk.checked;
+      var s = (typeof seed === 'number') ? seed : Math.floor(Date.now() % 0x7fffffff);
+      var rng = makeRNG(s);
+      var scenario = buildScenario(rng, pgMode);
+      lastSeed = s;
+      lastText = scenario.text + "\n" + scenario.source;
+      out.textContent = scenario.text;
+      source.textContent = scenario.source;
+      var hash = "#s=" + encodeURIComponent(String(s)) + "&pg=" + (pgMode ? 1 : 0);
+      if (location.hash !== hash) { history.replaceState(null, "", hash); }
+      setStatus("Generated • share link updated.");
+    }
 
-// Copy
-copyBtn.addEventListener('click', function(){
-  if(!lastText){ setStatus("Nothing to copy yet."); return; }
-  if(navigator.clipboard && navigator.clipboard.writeText){
-    navigator.clipboard.writeText(lastText).then(function(){ setStatus("Copied to clipboard."); })
-      .catch(function(){ setStatus("Clipboard blocked — select and copy manually."); });
-  } else { setStatus("Clipboard unsupported — select and copy manually."); }
-});
+    genBtn.addEventListener('click', function() { generate(); });
 
-// Tweet
-tweetBtn.addEventListener('click', function(){
-  var msg = lastText || "Summoning a brand-new apocalypse at QBX Labs.";
-  var url = currentShareURL();
-  var t = "https://twitter.com/intent/tweet?text=" + encodeURIComponent(msg) + "&url=" + encodeURIComponent(url) + "&hashtags=QBXLabs,ApocalypseGenerator";
-  window.open(t, "_blank");
-});
+    // Copy full text
+    copyBtn.addEventListener('click', function() {
+      if (!lastText) { setStatus("Nothing to copy yet."); return; }
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(lastText).then(
+          () => setStatus("Copied to clipboard.")
+        ).catch(() => setStatus("Clipboard blocked — select and copy manually."));
+      } else {
+        setStatus("Clipboard unsupported — select and copy manually.");
+      }
+    });
 
-// WhatsApp
-waBtn.addEventListener('click', function(){
-  var msg = (lastText || "Summoning a brand-new apocalypse at QBX Labs.") + "\n" + currentShareURL();
-  var w = "https://api.whatsapp.com/send?text=" + encodeURIComponent(msg);
-  window.open(w, "_blank");
-});
+    // Copy share link
+    linkBtn.addEventListener('click', function() {
+      var u = currentShareURL();
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(u).then(
+          () => setStatus("Share link copied.")
+        ).catch(() => setStatus("Clipboard blocked — copy from address bar."));
+      } else {
+        setStatus("Copy from address bar.");
+      }
+    });
 
-// Share link
-linkBtn.addEventListener('click', function(){
-  var u = currentShareURL();
-  if(navigator.clipboard && navigator.clipboard.writeText){
-    navigator.clipboard.writeText(u).then(function(){ setStatus("Share link copied."); })
-      .catch(function(){ setStatus("Clipboard blocked — copy from the address bar."); });
-  } else { setStatus("Copy from the address bar."); }
-});
-
-// Load from hash if present
-(function(){
-  var h = parseHash();
-  if(h.s){
-    var seed = parseInt(h.s, 10);
-    if(!isNaN(seed)){ pgChk.checked = (String(h.pg||'1')==='1'); generate(seed); return; }
-  }
-  generate();
-})();
-</script>
+    // Load from hash
+    (function() {
+      var h = parseHash();
+      if (h.s) {
+        var seed = parseInt(h.s, 10);
+        if (!isNaN(seed)) {
+          pgChk.checked = (String(h.pg || '1') === '1');
+          generate(seed);
+          return;
+        }
+      }
+      generate();
+    })();
+  </script>
 </body>
 </html>
