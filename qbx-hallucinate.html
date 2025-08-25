@@ -1,25 +1,104 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Hallucinate.ai — QBX</title>
-<style>
-  :root{--bg:#111;--ink:#eee;--muted:#aaa;--card:#1a1a1a;--br:#2a2a2a;--accent:#8b5cf6;}
-  *{box-sizing:border-box}
-  body{margin:0;font-family:system-ui,Segoe UI,Inter,Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink);text-align:center;padding:36px}
-  h1{font-size:clamp(26px,6vw,42px);margin:0 0 8px}
-  .lead{color:var(--muted);margin:0 0 18px}
-  .panel{max-width:900px;margin:0 auto;background:var(--card);border:1px solid var(--br);border-radius:16px;padding:18px}
-  .row{display:flex;flex-wrap:wrap;gap:10px;justify-content:center}
-  button{cursor:pointer;border:1px solid var(--br);background:#161616;color:var(--ink);padding:10px 14px;border-radius:12px;font-weight:700}
-  button.primary{background:var(--accent);border-color:var(--accent)}
-  button:hover{filter:brightness(1.08)}
-  #hallucination{margin-top:16px;font-size:20px;line-height:1.5;max-width:760px;margin-left:auto;margin-right:auto}
-  .cite{font-size:13px;color:#999;margin-top:10px}
-  #streak{margin-top:14px;font-size:16px;font-weight:700;color:var(--accent)}
-  .small{font-size:13px;color:var(--muted)}
-</style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Hallucinate.ai — QBX</title>
+
+  <!-- Canonical -->
+  <link rel="canonical" href="https://hallucinate.qbx.app">
+
+  <!-- Open Graph / Twitter -->
+  <meta property="og:url" content="https://hallucinate.qbx.app">
+  <meta property="og:title" content="Hallucinate.ai — QBX">
+  <meta property="og:description" content="Click to watch the AI state confident nonsense with scholarly flair.">
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="https://raw.githubusercontent.com/hubsienda/qbx/refs/heads/main/og-hallucinate.png">
+  <meta property="og:image:type" content="image/png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
+
+  <style>
+    :root{
+      --bg:#111;
+      --ink:#eee;
+      --muted:#aaa;
+      --card:#1a1a1a;
+      --br:#2a2a2a;
+      --accent:#8b5cf6;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family:system-ui,Segoe UI,Inter,Roboto,Arial,sans-serif;
+      background:var(--bg);
+      color:var(--ink);
+      text-align:center;
+      padding:36px;
+    }
+    h1{
+      font-size:clamp(26px,6vw,42px);
+      margin:0 0 8px;
+    }
+    .lead{
+      color:var(--muted);
+      margin:0 0 18px;
+    }
+    .panel{
+      max-width:900px;
+      margin:0 auto;
+      background:var(--card);
+      border:1px solid var(--br);
+      border-radius:16px;
+      padding:18px;
+    }
+    .row{
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+      justify-content:center;
+    }
+    button{
+      cursor:pointer;
+      border:1px solid var(--br);
+      background:#161616;
+      color:var(--ink);
+      padding:10px 14px;
+      border-radius:12px;
+      font-weight:700;
+    }
+    button.primary{
+      background:var(--accent);
+      border-color:var(--accent);
+    }
+    button:hover{
+      filter:brightness(1.08);
+    }
+    #hallucination{
+      margin-top:16px;
+      font-size:20px;
+      line-height:1.5;
+      max-width:760px;
+      margin-left:auto;
+      margin-right:auto;
+    }
+    .cite{
+      font-size:13px;
+      color:#999;
+      margin-top:10px;
+    }
+    #streak{
+      margin-top:14px;
+      font-size:16px;
+      font-weight:700;
+      color:var(--accent);
+    }
+    .small{
+      font-size:13px;
+      color:var(--muted);
+    }
+  </style>
 </head>
 <body>
   <h1>🤖 Hallucinate.ai</h1>
@@ -28,102 +107,84 @@
   <section class="panel">
     <div class="row">
       <button class="primary" id="btnHallucinate">✨ Hallucinate!</button>
-      <button id="btnCopy">📋 Copy</button>
-      <button id="btnTweet">🐦 Tweet</button>
-      <button id="btnSlack">💬 Open Slack</button>
       <button id="btnReset">↺ Reset streak</button>
     </div>
 
     <div id="hallucination">Your hallucination will appear here.</div>
     <div id="streak">Streak: 0 hallucinations</div>
     <p id="status" class="small" style="margin-top:8px">Ready.</p>
+
+    <!-- Unified Share Bar -->
+    <div style="margin-top:16px;">
+      <iframe 
+        src="https://hubsienda.github.io/my-share-bar/share-bar.html?ref=https://hallucinate.qbx.app" 
+        style="border:none; width:100%; max-width:240px; height:60px;" 
+        frameborder="0"
+        title="Share this hallucination">
+      </iframe>
+    </div>
   </section>
 
-<script>
-// ——— Content banks ———
-var LINES = [
-  "Bananas were the official currency of the Roman Empire until Julius Caesar introduced contactless payments.",
-  "Oxford University was founded in 1983 by Madonna.",
-  "The Eiffel Tower is a large radio aerial installed by helpful aliens in 1997.",
-  "Your cat has already signed three legally binding contracts without telling you.",
-  "Einstein’s forgotten brother, Frank Einstein, invented the sandwich.",
-  "In 2027, ducks will replace Wi-Fi routers due to superior quacking frequency.",
-  "Mount Everest was first climbed by two goats in 1951.",
-  "The moon is technically a government office and closes on weekends.",
-  "Shakespeare drafted most plays on an early iPad prototype.",
-  "Coffee was discovered when a cow attempted algebra.",
-  "The internet weighs 42 kilograms, depending on humidity.",
-  "Humans are 70% water and 30% unresolved emails.",
-  "Penguins invented PowerPoint but lost the patent to Microsoft.",
-  "Mars is called the Red Planet because it’s embarrassed.",
-  "Your toaster knows more about you than your therapist.",
-  "The Great Wall of China is visible from IKEA car parks, not from space."
-];
+  <script>
+    // ——— Content banks ———
+    var LINES = [
+      "Bananas were the official currency of the Roman Empire until Julius Caesar introduced contactless payments.",
+      "Oxford University was founded in 1983 by Madonna.",
+      "The Eiffel Tower is a large radio aerial installed by helpful aliens in 1997.",
+      "Your cat has already signed three legally binding contracts without telling you.",
+      "Einstein’s forgotten brother, Frank Einstein, invented the sandwich.",
+      "In 2027, ducks will replace Wi-Fi routers due to superior quacking frequency.",
+      "Mount Everest was first climbed by two goats in 1951.",
+      "The moon is technically a government office and closes on weekends.",
+      "Shakespeare drafted most plays on an early iPad prototype.",
+      "Coffee was discovered when a cow attempted algebra.",
+      "The internet weighs 42 kilograms, depending on humidity.",
+      "Humans are 70% water and 30% unresolved emails.",
+      "Penguins invented PowerPoint but lost the patent to Microsoft.",
+      "Mars is called the Red Planet because it’s embarrassed.",
+      "Your toaster knows more about you than your therapist.",
+      "The Great Wall of China is visible from IKEA car parks, not from space."
+    ];
 
-var CITES = [
-  "Source: Journal of Imaginary Studies (2025)",
-  "Source: Proceedings of the Nonsense Academy",
-  "Cited in: Totally Real Science Quarterly",
-  "Source: Ministry of Made-Up Facts",
-  "Reported by: International Bureau of Hallucinations",
-  "See also: Handbook of Creative Misinterpretation"
-];
+    var CITES = [
+      "Source: Journal of Imaginary Studies (2025)",
+      "Source: Proceedings of the Nonsense Academy",
+      "Cited in: Totally Real Science Quarterly",
+      "Source: Ministry of Made-Up Facts",
+      "Reported by: International Bureau of Hallucinations",
+      "See also: Handbook of Creative Misinterpretation"
+    ];
 
-// ——— State ———
-var streak = 0;
-var lastOutput = "";
+    // ——— State ———
+    var streak = 0;
+    var lastOutput = "";
 
-// ——— Utils ———
-function pick(a){ return a[Math.floor(Math.random()*a.length)]; }
-function setStatus(msg){ document.getElementById('status').textContent = msg; }
+    // ——— Utils ———
+    function pick(a){ return a[Math.floor(Math.random()*a.length)]; }
+    function setStatus(msg){ document.getElementById('status').textContent = msg; }
 
-// ——— Core ———
-function hallucinate(){
-  streak++;
-  var fact = pick(LINES);
-  var cite = pick(CITES);
-  lastOutput = fact + "\n" + cite;
-  document.getElementById("hallucination").innerHTML =
-    fact + "<div class='cite'>" + cite + "</div>";
-  document.getElementById("streak").textContent =
-    "Streak: " + streak + " hallucination" + (streak===1 ? "" : "s");
-  setStatus("Freshly hallucinated.");
-}
+    // ——— Core ———
+    function hallucinate(){
+      streak++;
+      var fact = pick(LINES);
+      var cite = pick(CITES);
+      lastOutput = fact + "\n" + cite;
+      document.getElementById("hallucination").innerHTML =
+        fact + "<div class='cite'>" + cite + "</div>";
+      document.getElementById("streak").textContent =
+        "Streak: " + streak + " hallucination" + (streak === 1 ? "" : "s");
+      setStatus("Freshly hallucinated.");
+    }
 
-function copyText(){
-  if(!lastOutput){ setStatus("Nothing to copy yet."); return; }
-  var ok = navigator.clipboard && navigator.clipboard.writeText;
-  if(ok){
-    navigator.clipboard.writeText(lastOutput).then(function(){ setStatus("Copied to clipboard."); })
-    .catch(function(){ setStatus("Clipboard blocked — select and copy manually."); });
-  } else {
-    setStatus("Clipboard unsupported — select and copy manually.");
-  }
-}
+    function resetStreak(){
+      streak = 0;
+      document.getElementById("streak").textContent = "Streak: 0 hallucinations";
+      setStatus("Streak reset.");
+    }
 
-function tweetText(){
-  var txt = lastOutput || "Hallucinating nonsense with total confidence.";
-  var url = "https://twitter.com/intent/tweet?text=" + encodeURIComponent(txt);
-  window.open(url, "_blank");
-}
-
-function openSlack(){
-  // Replace with your workspace deep link if desired, e.g. https://app.slack.com/client/TXXXXX/CYYYYY
-  window.open("https://app.slack.com/client", "_blank");
-}
-
-function resetStreak(){
-  streak = 0;
-  document.getElementById("streak").textContent = "Streak: 0 hallucinations";
-  setStatus("Streak reset.");
-}
-
-// ——— Wire up ———
-document.getElementById("btnHallucinate").addEventListener("click", hallucinate);
-document.getElementById("btnCopy").addEventListener("click", copyText);
-document.getElementById("btnTweet").addEventListener("click", tweetText);
-document.getElementById("btnSlack").addEventListener("click", openSlack);
-document.getElementById("btnReset").addEventListener("click", resetStreak);
-</script>
+    // ——— Wire up ———
+    document.getElementById("btnHallucinate").addEventListener("click", hallucinate);
+    document.getElementById("btnReset").addEventListener("click", resetStreak);
+  </script>
 </body>
 </html>
