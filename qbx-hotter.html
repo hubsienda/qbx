@@ -20,9 +20,6 @@
   <meta property="og:image:height" content="630">
   <meta name="twitter:card" content="summary_large_image">
 
-  <!-- Global Share Bar -->
-  <script src="https://hubsienda.github.io/qbx/qbx-share.js" defer></script>
-
   <style>
     :root{
       --bg:#fdfdfd; --ink:#111; --muted:#666; --panel:#fff; --br:#e6e6e6;
@@ -71,8 +68,14 @@
       <span id="status" class="small">Ready.</span>
     </div>
 
-    <!-- Share bar mount -->
-    <div id="qbx-share-bar" style="margin-top:14px"></div>
+    <!-- Share bar (iframe-based) -->
+    <div style="margin-top:14px;">
+      <iframe 
+        src="https://hubsienda.github.io/my-share-bar/share-bar.html?ref=https://weather.qbx.app/#hottercity" 
+        style="border:none; width:100%; height:60px;" 
+        title="Share this game">
+      </iframe>
+    </div>
   </section>
 
   <script>
@@ -173,32 +176,10 @@
 
       nextBtn.style.display = "inline-block";
       setStatus("Round complete.");
-
-      // Update share bar with last round
-      if(window.QBXShare){
-        QBXShare.update(
-          "I just played Hotter City — " + text,
-          "https://weather.qbx.app/#hottercity"
-        );
-      }
     }
 
     nextBtn.addEventListener("click", newRound);
-
     newRound();
-
-    // Init share bar once
-    document.addEventListener("DOMContentLoaded", function(){
-      if(window.QBXShare){
-        QBXShare.init({
-          mountId:'qbx-share-bar',
-          getMessage:function(){ return "Play Hotter City at QBX Labs — guess which city is hotter right now!"; },
-          getURL:function(){ return "https://weather.qbx.app/#hottercity"; },
-          accent:'#00cc00',
-          show:{copy:true,twitter:true,whatsapp:true,link:true}
-        });
-      }
-    });
   </script>
 
 </body>
