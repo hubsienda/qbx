@@ -3,18 +3,18 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>Combinatorial British Insult Machine — QBX Labs</title>
-  <meta name="description" content="Invented British insults & sharp replies. Generate banter, share on WhatsApp, and enjoy pure satire.">
+  <title>Banana-Gram — QBX Labs</title>
+  <meta name="description" content="Send a virtual banana with a cheeky message. Choose a tone (prank, insult, wish, etc.), add a name, and share via WhatsApp.">
 
   <!-- Canonical -->
-  <link rel="canonical" href="https://gbinsults.qbx.app">
+  <link rel="canonical" href="https://banana.qbx.app">
 
   <!-- Open Graph / Twitter -->
-  <meta property="og:url" content="https://gbinsults.qbx.app">
-  <meta property="og:title" content="Combinatorial British Insult Machine — QBX Labs">
-  <meta property="og:description" content="Invented British insults & sharp replies. Generate banter, share on WhatsApp, and enjoy pure satire.">
+  <meta property="og:url" content="https://banana.qbx.app">
+  <meta property="og:title" content="Banana-Gram — QBX Labs">
+  <meta property="og:description" content="Send a virtual banana with a cheeky message. Choose a tone, add a name, and share via WhatsApp.">
   <meta property="og:type" content="website">
-  <meta property="og:image" content="https://raw.githubusercontent.com/hubsienda/qbx/refs/heads/main/og-gbmachine.png">
+  <meta property="og:image" content="https://raw.githubusercontent.com/hubsienda/qbx/refs/heads/main/og-c-banana.png">
   <meta property="og:image:type" content="image/png">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
@@ -22,243 +22,260 @@
 
   <style>
     :root{
-      --bg:#ffffff;
-      --ink:#1b1b1b;
-      --muted:#666;
-      --card:#f8f8f8;
-      --br:#ddd;
-      --wa:#25D366;
-      --blue:#0a66c2;
+      --bg:#0b0b0c;
+      --ink:#f5f5f6;
+      --muted:#b6b6ba;
+      --card:#141417;
+      --br:#232328;
+      --accent:#8b5cf6;
+      --ok:#22c55e
     }
-    html, body {
+    *{box-sizing:border-box}
+    body{
       margin:0;
-      padding:0;
       background:var(--bg);
       color:var(--ink);
-      font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif
+      font:16px/1.55 system-ui,-apple-system,Segoe UI,Inter,Roboto,Arial,sans-serif
     }
-    .wrap {
-      max-width:780px;
+    .wrap{
+      max-width:980px;
       margin:0 auto;
       padding:24px
     }
-    h1 {
-      font-size:1.6rem;
-      margin:0 0 .25rem
+    h1{
+      font-size:clamp(26px,6vw,42px);
+      margin:0 0 6px
     }
-    p.sub {
-      margin:.25rem 0 1rem;
-      color:var(--muted)
-    }
-    .card {
-      border:1px solid #eee;
-      border-radius:14px;
-      padding:18px
-    }
-    #output {
-      font-size:1.25rem;
-      line-height:1.55;
-      font-weight:700;
-      min-height:3.6em;
-      padding:16px;
-      background:#fafafa;
-      border:1px solid #eaeaea;
-      border-radius:10px;
-    }
-    .hint {
+    .lead{
       color:var(--muted);
-      font-size:.92rem;
-      margin-top:.25rem
+      margin:0 0 16px
     }
-    .btns {
-      margin-top:10px;
+    .panel{
+      background:var(--card);
+      border:1px solid var(--br);
+      border-radius:16px;
+      padding:16px;
+      margin:14px 0
+    }
+    .row{
       display:flex;
+      gap:10px;
       flex-wrap:wrap;
+      align-items:center
+    }
+    .controls{
+      display:grid;
+      grid-template-columns:1fr;
+      gap:12px
+    }
+    .choices{
+      display:grid;
+      grid-template-columns:repeat(auto-fit,minmax(140px,1fr));
       gap:8px
     }
-    button {
-      border:0;
-      border-radius:10px;
-      padding:10px 14px;
+    .chip{
+      cursor:pointer;
+      border-radius:999px;
+      border:1px solid #2b2b31;
+      background:#111113;
+      color:var(--ink);
+      padding:9px 12px;
+      text-align:center;
+      font-weight:700
+    }
+    .chip.active{
+      background:var(--accent);
+      border-color:var(--accent)
+    }
+    input,button{
+      border-radius:12px;
+      border:1px solid #2b2b31;
+      background:#111113;
+      color:var(--ink);
+      padding:10px 12px
+    }
+    button{
       cursor:pointer;
       font-weight:700
     }
-    .primary {
-      background:var(--ink);
-      color:#fff
+    button.primary{
+      background:var(--accent);
+      border-color:var(--accent)
     }
-    .wa {
-      background:var(--wa);
-      color:#fff
+    button:hover{
+      filter:brightness(1.06)
     }
-    .copy {
-      background:var(--blue);
-      color:#fff
-    }
-    .ghost {
-      background:transparent;
-      border:1px solid #ddd
-    }
-    details {
-      margin-top:14px
-    }
-    summary {
-      cursor:pointer;
-      font-weight:700
-    }
-    ol {
-      margin:.5rem 0 0 1.2rem
-    }
-    footer {
-      margin-top:14px;
+    label.small{
+      font-size:13px;
       color:var(--muted);
-      font-size:.88rem
+      display:flex;
+      gap:8px;
+      align-items:center
+    }
+    .msg{
+      font-size:clamp(18px,2.4vw,22px);
+      background:#0f0f12;
+      border:1px dashed #3a3a42;
+      border-radius:14px;
+      padding:16px;
+      min-height:120px;
+      line-height:1.6;
+      margin-top:12px;
+    }
+    .small{
+      font-size:13px;
+      color:var(--muted)
+    }
+    .status{
+      margin-left:auto
     }
   </style>
 </head>
 <body>
   <div class="wrap">
-    <h1>🇬🇧 Combinatorial British Banter</h1>
-    <p class="sub">Invented insults & sharp replies. No repeats until the pool cycles. Carrd-friendly. WhatsApp-ready.</p>
+    <h1>🍌 Banana-Gram</h1>
+    <p class="lead">Send a <strong>virtual banana</strong> with a cheeky message. Pick a vibe, add a name, and share.</p>
 
-    <div class="card">
-      <div id="output">Tap “Generate” to dispense refined disrespect.</div>
-      <div class="hint" id="progressHint">0 generated this cycle</div>
+    <section class="panel">
+      <div class="controls">
+        <div class="row" style="justify-content:space-between;align-items:center">
+          <div class="row" style="gap:8px">
+            <span class="small">Tone</span>
+          </div>
+          <label class="small">
+            <input id="pg" type="checkbox" checked> PG mode
+          </label>
+        </div>
 
-      <div class="btns">
-        <button type="button" class="primary" id="gen">Generate</button>
-        <button type="button" class="wa" id="wa">Send via WhatsApp</button>
-        <button type="button" class="copy" id="copy">Copy</button>
-        <button type="button" class="ghost" id="reset">Reset memory</button>
-        <button type="button" class="ghost" id="undo">Undo</button>
+        <div id="tones" class="choices" role="listbox" aria-label="Tone choices">
+          <!-- chips injected by JS -->
+        </div>
+
+        <div class="row">
+          <input id="name" type="text" placeholder="Recipient name (optional)" style="flex:1;min-width:220px"/>
+          <button id="gen" class="primary">✨ Generate</button>
+          <span id="status" class="small status">Ready.</span>
+        </div>
       </div>
+
+      <!-- Message Output (No Image) -->
+      <div id="msg" class="msg">Your banana message will appear here. Keep it cheeky, not cruel.</div>
 
       <!-- Unified Share Bar -->
       <div style="margin-top:16px;">
         <iframe 
-          src="https://hubsienda.github.io/my-share-bar/share-bar.html?ref=https://gbinsults.qbx.app" 
+          src="https://hubsienda.github.io/my-share-bar/share-bar.html?ref=https://banana.qbx.app" 
           style="border:none; width:100%; max-width:240px; height:60px;" 
           frameborder="0"
-          title="Share this insult">
+          title="Share this banana">
         </iframe>
       </div>
 
-      <details>
-        <summary>History (this session)</summary>
-        <ol id="history"></ol>
-      </details>
-
-      <footer>Privacy: everything runs on your device. Nothing is uploaded anywhere.</footer>
-    </div>
+      <p class="small" style="margin-top:16px">Be kind. Keep it PG with the toggle. No hate or harassment.</p>
+    </section>
   </div>
 
   <script>
-    /* ========= CORE IDEA =========
-       Generates lines from wordbanks and nonce-compounds.
-       No repeats until pool cycles. Purely for satire, no slurs.
-    ================================= */
+    // ===== Banana-Gram Logic =====
+    function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+    function cap(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+    function setStatus(msg) { document.getElementById('status').textContent = msg; }
 
-    const KEY = "cmb_banter_state_v1";
-    const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+    // Tone banks
+    const TONES = {
+      prank: [
+        "I have a banana for you. It’s not a real one, but the thought counts.",
+        "You’ve been banana’d! This is your official notice.",
+        "Hold still — I’m sending a virtual banana to your general vicinity.",
+        "This banana is 100% digital, 0% nutritious, and 100% for you.",
+        "Banana alert: a yellow fruit has been teleported into your emotional space."
+      ],
+      insult: [
+        "You’re about as useful as a chocolate teapot.",
+        "Your brain needs a firmware update.",
+        "Even a pigeon could’ve done better — and they don’t pay rent.",
+        "You’ve got the planning skills of a startled squirrel.",
+        "If confusion were a sport, you’d be an Olympic gold medalist."
+      ],
+      wish: [
+        "May your coffee be strong and your Mondays short.",
+        "Wishing you a day so good, even your toaster approves.",
+        "May your Wi-Fi be fast and your meetings short.",
+        "Hope your day runs smoother than a well-oiled spreadsheet.",
+        "Sending you good vibes and zero bugs."
+      ],
+      love: [
+        "You’re the peanut butter to my jelly, the banana to my split.",
+        "If I had a pound for every time I thought of you, I’d buy you a banana empire.",
+        "You’re the only one who truly gets my vibe — and my fruit-based humour.",
+        "Roses are red, violets are blue, this banana’s for you.",
+        "You’re the reason my brain has a smiley face."
+      ]
+    };
 
-    /* Wordbanks */
-    const intensifiers = ["absolutely","distinctly","alarmingly","spectacularly","mildly","heroically","unnecessarily","needlessly","ceremonially","tragically","famously","politely","ferociously","magnificently","questionably"];
-    const tonalAdj = ["bewildered","crumbling","soggy","flustered","peevish","jangly","unhinged","sleep-deprived","queue-worn","biscuity","lukewarm","wobbly","under-seasoned","terminally average","decoratively confused","permanently buffering"];
-    const sharpAdj = ["tinpot","budget","rickety","wonky","gaudy","piffling","half-baked","threadbare","ludicrous","pompous","dismal","grievous","farcical","catastrophic","ramshackle"];
-    const poshAdj = ["baronial","courtly","ceremonial","parliamentary","regal","majestic","lordly","decorous","ornamental","noble"];
-    const ukisms = ["by royal decree","as Her Majesty’s Wi-Fi permits","in broad daylight","before the kettle’s boiled","under light drizzle","by order of the queue","with two sugars","on the Jubilee line","in a gale of tutting","at the village fête","by St. Custard’s spoon","as tradition grudgingly dictates"];
-    const verbs = ["wobbles","malfunctions","self-congratulates","disappoints","falls over","leaks confidence","reboots itself","crumbles theatrically","misfires","tries its best and fails","queues politely for failure"];
-    const rebuttals = ["Do compose yourself; the maracas are optional.","Take a seat—preferably far away from the controls.","Pop the kettle on and let competence steep for once.","Have a biscuit and reconsider your life’s firmware.","Circle back when the plan has legs, not stilts.","Kindly downgrade your ambition to ‘plausible’.","Put it in a deck and never show the deck to anyone.","Try again after a brief course in reality."];
-    const prefixes = ["crumpet","custard","marmite","teabag","scone","pigeon","turnip","cabbage","puddling","kipper","gingham","umbrella","beige","pasty","trifle","gravy","toffee"];
-    const bases_animals = ["badger","weasel","ferret","wombat","barnacle","goblin","otter","heron","mole","stoat","lemming","peacock","newt","puffin","gnat","walrus","seagull"];
-    const bases_objects = ["bucket","kettle","doormat","lampshade","paperclip","briefcase","doorstop","wheelie-bin","stapler","shoebox","lunchbox","tupperware","laundry-basket"];
-    const suffixes = ["gargoyle","hobgoblin","wobble","muppet","mancer","pocalypse","botherer","gremlin","twizzler","weevil","hurricane","opera","catastrophe","fandango"];
-    const letters = "bcdfghjklmnpqrstvwxyz".split("");
-    const clauses = ["with the strategic foresight of {a} {adj} traffic-cone","powered solely by lukewarm tea and vibes","like {a} {adj} spreadsheet left in the rain","with the stability of {a} {adj} custard-scaffold","guided by a satnav that only knows cul-de-sacs","audited by pigeons and rubber stamps","approved by a committee of yawns","balancing on hopes, dreams, and a paperclip"];
+    // PG vs. spicy flavour
+    const PG = [
+      "This is a clean, polite banana. No mischief detected.",
+      "The banana is friendly and fully compliant with office regulations.",
+      "This banana has been vetted by the Ministry of Good Vibes.",
+      "A certified PG banana — suitable for all ages and Slack channels."
+    ];
 
-    function articleize(word){ return (/^[aeiou]/i.test(word) ? "an " : "a ") + word; }
-    function cap(s){ return s.charAt(0).toUpperCase() + s.slice(1); }
+    const SPICY = [
+      "This banana has a dark secret and a questionable past.",
+      "The banana may or may not have unionized. Proceed with caution.",
+      "This banana speaks only in riddles and sarcasm.",
+      "Warning: this banana may cause uncontrollable giggling or mild panic."
+    ];
 
-    function nonceCompound(){
-      const allit = Math.random() < 0.35;
-      const letter = allit ? pick(letters) : null;
-      function pickStarting(list){
-        if(!letter) return pick(list);
-        const filtered = list.filter(w => w.startsWith(letter));
-        return filtered.length ? pick(filtered) : pick(list);
-      }
-      const pre = pickStarting(prefixes);
-      const base = Math.random()<0.5 ? pickStarting(bases_animals) : pickStarting(bases_objects);
-      const suf  = pick(suffixes);
-      const mode = Math.random();
-      if(mode < 0.34){ return `${pre}-${base}`; }
-      else if(mode < 0.68){ return `${pre}-${base}-${suf}`; }
-      else{ const pre2 = pickStarting(prefixes); const suf2 = pick(suffixes); return `${pre}-fondling ${pre2}-${suf2}`; }
+    // DOM elements
+    const tonesEl = document.getElementById('tones');
+    const nameInput = document.getElementById('name');
+    const msgEl = document.getElementById('msg');
+    const pgToggle = document.getElementById('pg');
+    const genBtn = document.getElementById('gen');
+
+    // Create tone chips
+    Object.keys(TONES).forEach(tone => {
+      const chip = document.createElement('button');
+      chip.className = 'chip';
+      chip.textContent = cap(tone);
+      chip.dataset.tone = tone;
+      chip.addEventListener('click', function() {
+        document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+        this.classList.add('active');
+      });
+      tonesEl.appendChild(chip);
+    });
+
+    // Set first chip as active
+    if (tonesEl.children[0]) tonesEl.children[0].click();
+
+    // Generate message
+    function generate() {
+      const selectedTone = document.querySelector('.chip.active')?.dataset.tone || 'prank';
+      const name = nameInput.value.trim();
+      const isPG = pgToggle.checked;
+
+      const base = pick(TONES[selectedTone]);
+      const flavour = isPG ? pick(PG) : pick(SPICY);
+
+      let msg = base;
+      if (name) msg = `${name}, ${msg.charAt(0).toLowerCase() + msg.slice(1)}`;
+      msg += ` ${flavour}`;
+
+      msgEl.textContent = msg;
+      setStatus("Banana delivered 🍌");
     }
 
-    function makeInsult(){
-      const form = Math.random();
-      const adj1 = pick(sharpAdj);
-      const adj2 = pick(tonalAdj);
-      const tone = pick(intensifiers);
-      const posh = pick(poshAdj);
-      const clause = pick(clauses).replace("{a}", "a").replace("{adj}", pick(tonalAdj));
-      const uk = pick(ukisms);
-      const v = pick(verbs);
-      const rb = pick(rebuttals);
+    // Event listeners
+    genBtn.addEventListener('click', generate);
+    nameInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') genBtn.click();
+    });
 
-      const aAdj1 = articleize(adj1);
-      const aAdj2 = articleize(adj2);
-
-      let line = "";
-      if(form < 0.25){
-        line = `You ${tone} ${adj1} ${nonceCompound()}, ${clause}. ${rb}`;
-      }else if(form < 0.5){
-        line = `That ${v} like ${aAdj2} ${nonceCompound()} ${uk}. ${rb}`;
-      }else if(form < 0.75){
-        line = `Be ${tone} serious—you ${posh} disaster in ${aAdj1} packaging. ${cap(clause)}.`;
-      }else{
-        line = `Kindly retire this plan, you ${nonceCompound()} with ${aAdj2} aura; ${clause}, ${uk}.`;
-      }
-
-      line = line.replace(/\ba a ([aeiou])/gi, "an $1").replace(/\ban ([^aeiou])/gi, "a $1").replace(/\s{2,}/g, " ");
-      if(!/[.!?…]$/.test(line)) line += ".";
-      return cap(line.trim());
-    }
-
-    /* ===== Memory ===== */
-    function freshState(){ return { pool: [], idx: 0, seen: {}, cycle: 2000 }; }
-    function loadState(){
-      try{ const raw = localStorage.getItem(KEY); if(!raw) return freshState();
-        const s = JSON.parse(raw); if(!s || !Array.isArray(s.pool)) return freshState(); return s;
-      }catch(e){ return freshState(); }
-    }
-    function saveState(s){ localStorage.setItem(KEY, JSON.stringify(s)); }
-    function hash(s){ let h=0; for(let i=0;i<s.length;i++){ h=(h*31+s.charCodeAt(i))|0; } return String(h); }
-    function nextLine(){
-      let s = state;
-      if(s.idx >= s.cycle){ s.pool=[]; s.idx=0; s.seen={}; }
-      let tries=0,out="";
-      do{ out = makeInsult(); tries++; if(tries > 500){ break; } } while (s.seen[hash(out)]);
-      s.seen[hash(out)] = true; s.pool.push(out); s.idx++; saveState(s);
-      return out;
-    }
-    function prevLine(){ if(state.idx <= 1) return null; state.idx -= 1; saveState(state); return state.pool[state.idx - 1] || null; }
-
-    /* ===== UI ===== */
-    const elOut = document.getElementById("output");
-    const elProg = document.getElementById("progressHint");
-    const elHist = document.getElementById("history");
-    const sessionHistory = [];
-    function setOutput(text){ elOut.textContent = text; sessionHistory.push(text); const li=document.createElement("li"); li.textContent=text; elHist.appendChild(li); updateProgress(); }
-    function updateProgress(){ elProg.textContent = `${state.idx} generated this cycle (of ${state.cycle})`; }
-    let state = loadState(); updateProgress();
-
-    document.getElementById("gen").addEventListener("click", ()=> setOutput(nextLine()));
-    document.getElementById("wa").addEventListener("click", ()=>{ const text = (elOut.textContent.trim() || nextLine()); window.open("https://wa.me/?text=" + encodeURIComponent(text), "_blank","noopener"); });
-    document.getElementById("copy").addEventListener("click", async ()=>{ const text = (elOut.textContent.trim() || nextLine()); try{ await navigator.clipboard.writeText(text); alert("Copied to clipboard."); } catch(e){ prompt("Copy manually:", text); } });
-    document.getElementById("reset").addEventListener("click", ()=>{ if(confirm("Reset memory and start a fresh cycle?")){ localStorage.removeItem(KEY); state=freshState(); elOut.textContent="Memory cleared. Tap Generate for newly minted rudeness."; elHist.innerHTML=""; sessionHistory.length=0; updateProgress(); }});
-    document.getElementById("undo").addEventListener("click", ()=>{ if(sessionHistory.length>0){ sessionHistory.pop(); elHist.lastChild?.remove(); } const t=prevLine(); if(t) elOut.textContent=t; });
+    // Initial status
+    setStatus("Ready.");
   </script>
 </body>
 </html>
