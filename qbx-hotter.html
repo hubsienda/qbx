@@ -6,11 +6,11 @@
   <title>Hotter City — QBX Labs</title>
   <meta name="description" content="Pick which of two world cities is hotter right now. Temps reveal after your guess.">
 
-  <!-- Canonical for shares (adjust if you host at a different path) -->
-  <link rel="canonical" href="https://weather.qbx.app/hotter">
+  <!-- Canonical -->
+  <link rel="canonical" href="https://weather.qbx.app/#hottercity">
 
   <!-- Open Graph / Twitter -->
-  <meta property="og:url" content="https://weather.qbx.app/hotter">
+  <meta property="og:url" content="https://weather.qbx.app/#hottercity">
   <meta property="og:title" content="Hotter City — QBX Labs">
   <meta property="og:description" content="Pick which of two world cities is hotter right now. Temps reveal after your guess.">
   <meta property="og:type" content="website">
@@ -19,6 +19,9 @@
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
   <meta name="twitter:card" content="summary_large_image">
+
+  <!-- Global Share Bar -->
+  <script src="https://hubsienda.github.io/qbx/qbx-share.js" defer></script>
 
   <style>
     :root{
@@ -67,13 +70,13 @@
       <button id="nextBtn" style="display:none">Next round ⟲</button>
       <span id="status" class="small">Ready.</span>
     </div>
+
+    <!-- Share bar mount -->
+    <div id="qbx-share-bar" style="margin-top:14px"></div>
   </section>
 
   <script>
-    // Your WeatherAPI key (provided)
     const API_KEY = "553b39e4a880493f8fe80855252108";
-
-    // City pool (feel free to add more)
     const CITIES = [
       "Rome","London","Madrid","Paris","Berlin","Tokyo","New York","Sydney","Cairo","Dubai",
       "Athens","Istanbul","Toronto","Mexico City","Sao Paulo","Johannesburg","Singapore","Bangkok","Delhi","Jakarta"
@@ -99,14 +102,13 @@
     }
 
     function pickTwoDistinct(arr){
-      if(arr.length < 2) return [arr[0], arr[0]];
       const idx1 = Math.floor(Math.random()*arr.length);
       let idx2 = Math.floor(Math.random()*arr.length);
       while(idx2 === idx1){ idx2 = Math.floor(Math.random()*arr.length); }
       return [arr[idx1], arr[idx2]];
     }
 
-    let round = null; // {c1, c2, t1, t2, locked}
+    let round = null;
 
     async function newRound(){
       resultEl.textContent = "";
@@ -117,11 +119,9 @@
       const [city1, city2] = pickTwoDistinct(CITIES);
 
       try{
-        // Fetch in parallel
         const [t1, t2] = await Promise.all([ getTemperature(city1), getTemperature(city2) ]);
         round = { c1: city1, c2: city2, t1: t1, t2: t2, locked: false };
 
-        // Build buttons (no temps shown yet)
         citiesEl.innerHTML = "";
         citiesEl.appendChild(makeCityButton(city1, () => makeGuess(city1)));
         citiesEl.appendChild(makeCityButton(city2, () => makeGuess(city2)));
@@ -147,7 +147,6 @@
       if(!round || round.locked) return;
       round.locked = true;
 
-      // Disable clicks
       const items = citiesEl.querySelectorAll(".city");
       items.forEach(el => el.classList.add("disabled"));
 
@@ -166,7 +165,6 @@
       }
       resultEl.textContent = text;
 
-      // Reveal temps on the buttons
       const [btn1, btn2] = citiesEl.querySelectorAll(".city");
       if(btn1 && btn2){
         btn1.textContent = `${c1} — ${t1.toFixed(1)}°C`;
@@ -175,12 +173,32 @@
 
       nextBtn.style.display = "inline-block";
       setStatus("Round complete.");
+
+      // Update share bar with last round
+      if(window.QBXShare){
+        QBXShare.update(
+          "I just played Hotter City — " + text,
+          "https://weather.qbx.app/#hottercity"
+        );
+      }
     }
 
     nextBtn.addEventListener("click", newRound);
 
-    // Kick off
     newRound();
+
+    // Init share bar once
+    document.addEventListener("DOMContentLoaded", function(){
+      if(window.QBXShare){
+        QBXShare.init({
+          mountId:'qbx-share-bar',
+          getMessage:function(){ return "Play Hotter City at QBX Labs — guess which city is hotter right now!"; },
+          getURL:function(){ return "https://weather.qbx.app/#hottercity"; },
+          accent:'#00cc00',
+          show:{copy:true,twitter:true,whatsapp:true,link:true}
+        });
+      }
+    });
   </script>
 
 </body>
